@@ -1,3 +1,4 @@
+mod game_state;
 mod vertex;
 
 use std::borrow::Cow;
@@ -9,20 +10,8 @@ use winit::{
     event_loop::ControlFlow,
 };
 
+use game_state::GameState;
 use vertex::Vertex;
-
-#[derive(Default)]
-struct GameArea {}
-
-impl<'a> GameArea {
-    fn vertices(&self) -> Vec<Vertex> {
-        vec![
-            [-1.0, -1.0, 0.0, 1.0].into(),
-            [0.0, 1.0, 0.0, 1.0].into(),
-            [1.0, -1.0, 0.0, 1.0].into(),
-        ]
-    }
-}
 
 #[allow(dead_code)]
 struct Inner {
@@ -98,14 +87,14 @@ impl Inner {
 pub struct Tetris {
     inner: Inner,
     render_pipeline: wgpu::RenderPipeline,
-    game_area: GameArea,
+    game_state: GameState,
 }
 
 impl Tetris {
     pub async fn new() -> anyhow::Result<Tetris> {
         let inner = Inner::new().await.context("Couldn't initialize inner")?;
 
-        let game_area = GameArea::default();
+        let game_state = GameState::default();
 
         let shader = inner
             .device
@@ -161,7 +150,7 @@ impl Tetris {
         Ok(Tetris {
             inner,
             render_pipeline,
-            game_area,
+            game_state,
         })
     }
 
@@ -196,7 +185,7 @@ impl Tetris {
                             .device
                             .create_buffer_init(&wgpu::util::BufferInitDescriptor {
                                 label: None,
-                                contents: bytemuck::cast_slice(&self.game_area.vertices()),
+                                contents: bytemuck::cast_slice(&self.game_state.vertices()),
                                 usage: wgpu::BufferUsages::VERTEX,
                             });
 
