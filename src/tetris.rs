@@ -6,6 +6,7 @@ use winit::{
     event_loop::ControlFlow,
 };
 
+#[allow(dead_code)]
 struct Inner {
     instance: wgpu::Instance,
     surface: wgpu::Surface,
