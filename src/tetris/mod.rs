@@ -115,7 +115,7 @@ impl Tetris {
         let swapchain_format = inner.surface.get_supported_formats(&inner.adapter)[0];
 
         let vertex_size = std::mem::size_of::<Vertex>();
-        let vertex_buffers = [wgpu::VertexBufferLayout {
+        let vertex_buffers_descriptor = [wgpu::VertexBufferLayout {
             array_stride: vertex_size as wgpu::BufferAddress,
             step_mode: wgpu::VertexStepMode::Vertex,
             attributes: &[wgpu::VertexAttribute {
@@ -134,7 +134,7 @@ impl Tetris {
                     vertex: wgpu::VertexState {
                         module: &shader,
                         entry_point: "vs_main",
-                        buffers: &vertex_buffers,
+                        buffers: &vertex_buffers_descriptor,
                     },
                     fragment: Some(wgpu::FragmentState {
                         module: &shader,
