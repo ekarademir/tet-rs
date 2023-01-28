@@ -45,8 +45,8 @@ impl<'a> Game {
     fn vertices(&self) -> Vec<Vertex> {
         vec![
             [-1.0, -1.0, 0.0, 1.0].into(),
-            [1.0, 0.0, 0.0, 1.0].into(),
             [0.0, 1.0, 0.0, 1.0].into(),
+            [1.0, -1.0, 0.0, 1.0].into(),
         ]
     }
 }
@@ -239,7 +239,7 @@ impl Tetris {
                                 view: &view,
                                 resolve_target: None,
                                 ops: wgpu::Operations {
-                                    load: wgpu::LoadOp::Clear(wgpu::Color::GREEN),
+                                    load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
                                     store: true,
                                 },
                             })],
