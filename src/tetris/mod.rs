@@ -180,12 +180,12 @@ impl Tetris {
                         .texture
                         .create_view(&wgpu::TextureViewDescriptor::default());
 
-                    let vertex_buffer =
+                    let game_area_vertex_buffer =
                         self.inner
                             .device
                             .create_buffer_init(&wgpu::util::BufferInitDescriptor {
                                 label: None,
-                                contents: bytemuck::cast_slice(&self.game_state.vertices()),
+                                contents: bytemuck::cast_slice(&self.game_state.game_area()),
                                 usage: wgpu::BufferUsages::VERTEX,
                             });
 
@@ -209,7 +209,7 @@ impl Tetris {
                         });
 
                         rpass.set_pipeline(&self.render_pipeline);
-                        rpass.set_vertex_buffer(0, vertex_buffer.slice(..));
+                        rpass.set_vertex_buffer(0, game_area_vertex_buffer.slice(..));
                         rpass.draw(0..3, 0..1);
                     }
                     self.inner.queue.submit(Some(encoder.finish()));
