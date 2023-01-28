@@ -39,9 +39,9 @@ impl From<[f32; 4]> for Vertex {
 }
 
 #[derive(Default)]
-struct Game {}
+struct GameArea {}
 
-impl<'a> Game {
+impl<'a> GameArea {
     fn vertices(&self) -> Vec<Vertex> {
         vec![
             [-1.0, -1.0, 0.0, 1.0].into(),
@@ -125,20 +125,20 @@ impl Inner {
 pub struct Tetris {
     inner: Inner,
     render_pipeline: wgpu::RenderPipeline,
-    game: Game,
+    game_area: GameArea,
 }
 
 impl Tetris {
     pub async fn new() -> anyhow::Result<Tetris> {
         let inner = Inner::new().await.context("Couldn't initialize inner")?;
 
-        let game = Game::default();
+        let game_area = GameArea::default();
 
         let shader = inner
             .device
             .create_shader_module(wgpu::ShaderModuleDescriptor {
                 label: None,
-                source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("shader.wgsl"))),
+                source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("game_area.wgsl"))),
             });
 
         let pipeline_layout =
@@ -188,7 +188,7 @@ impl Tetris {
         Ok(Tetris {
             inner,
             render_pipeline,
-            game,
+            game_area,
         })
     }
 
@@ -223,7 +223,7 @@ impl Tetris {
                             .device
                             .create_buffer_init(&wgpu::util::BufferInitDescriptor {
                                 label: None,
-                                contents: bytemuck::cast_slice(&self.game.vertices()),
+                                contents: bytemuck::cast_slice(&self.game_area.vertices()),
                                 usage: wgpu::BufferUsages::VERTEX,
                             });
 
