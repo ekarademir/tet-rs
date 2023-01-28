@@ -1,42 +1,15 @@
+mod vertex;
+
 use std::borrow::Cow;
 
 use anyhow::Context;
-use bytemuck::{Pod, Zeroable};
 use wgpu::util::DeviceExt;
 use winit::{
     event::{Event, WindowEvent},
     event_loop::ControlFlow,
 };
 
-#[repr(C)]
-#[derive(Clone, Copy, Debug, Pod, Zeroable)]
-struct Vertex {
-    _pos: [f32; 4],
-}
-
-impl From<[f32; 2]> for Vertex {
-    fn from(value: [f32; 2]) -> Self {
-        Vertex {
-            _pos: [value[0], value[1], 0.0, 1.0],
-        }
-    }
-}
-
-impl From<[f32; 3]> for Vertex {
-    fn from(value: [f32; 3]) -> Self {
-        Vertex {
-            _pos: [value[0], value[1], value[2], 1.0],
-        }
-    }
-}
-
-impl From<[f32; 4]> for Vertex {
-    fn from(value: [f32; 4]) -> Self {
-        Vertex {
-            _pos: [value[0], value[1], value[2], value[3]],
-        }
-    }
-}
+use vertex::Vertex;
 
 #[derive(Default)]
 struct GameArea {}
