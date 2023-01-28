@@ -8,6 +8,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.68"
+bytemuck = {version = "1.13.0", features = ["derive"]}
 log = "0.4.17"
 pollster = "0.2.5"
 simple_logger = "4.0.0"

@@ -1,10 +1,55 @@
 use std::borrow::Cow;
 
 use anyhow::Context;
+use bytemuck::{Pod, Zeroable};
+use wgpu::util::DeviceExt;
 use winit::{
     event::{Event, WindowEvent},
     event_loop::ControlFlow,
 };
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Pod, Zeroable)]
+struct Vertex {
+    _pos: [f32; 4],
+}
+
+impl From<[f32; 2]> for Vertex {
+    fn from(value: [f32; 2]) -> Self {
+        Vertex {
+            _pos: [value[0], value[1], 0.0, 1.0],
+        }
+    }
+}
+
+impl From<[f32; 3]> for Vertex {
+    fn from(value: [f32; 3]) -> Self {
+        Vertex {
+            _pos: [value[0], value[1], value[2], 1.0],
+        }
+    }
+}
+
+impl From<[f32; 4]> for Vertex {
+    fn from(value: [f32; 4]) -> Self {
+        Vertex {
+            _pos: [value[0], value[1], value[2], value[3]],
+        }
+    }
+}
+
+#[derive(Default)]
+struct Game {}
+
+impl<'a> Game {
+    fn vertices(&self) -> Vec<Vertex> {
+        vec![
+            [-1.0, -1.0, 0.0, 1.0].into(),
+            [1.0, 0.0, 0.0, 1.0].into(),
+            [0.0, 1.0, 0.0, 1.0].into(),
+        ]
+    }
+}
 
 #[allow(dead_code)]
 struct Inner {
@@ -80,11 +125,14 @@ impl Inner {
 pub struct Tetris {
     inner: Inner,
     render_pipeline: wgpu::RenderPipeline,
+    game: Game,
 }
 
 impl Tetris {
     pub async fn new() -> anyhow::Result<Tetris> {
         let inner = Inner::new().await.context("Couldn't initialize inner")?;
+
+        let game = Game::default();
 
         let shader = inner
             .device
@@ -104,6 +152,17 @@ impl Tetris {
 
         let swapchain_format = inner.surface.get_supported_formats(&inner.adapter)[0];
 
+        let vertex_size = std::mem::size_of::<Vertex>();
+        let vertex_buffers = [wgpu::VertexBufferLayout {
+            array_stride: vertex_size as wgpu::BufferAddress,
+            step_mode: wgpu::VertexStepMode::Vertex,
+            attributes: &[wgpu::VertexAttribute {
+                format: wgpu::VertexFormat::Float32x4,
+                offset: 0,
+                shader_location: 0,
+            }],
+        }];
+
         let render_pipeline =
             inner
                 .device
@@ -113,7 +172,7 @@ impl Tetris {
                     vertex: wgpu::VertexState {
                         module: &shader,
                         entry_point: "vs_main",
-                        buffers: &[],
+                        buffers: &vertex_buffers,
                     },
                     fragment: Some(wgpu::FragmentState {
                         module: &shader,
@@ -129,6 +188,7 @@ impl Tetris {
         Ok(Tetris {
             inner,
             render_pipeline,
+            game,
         })
     }
 
@@ -158,6 +218,15 @@ impl Tetris {
                         .texture
                         .create_view(&wgpu::TextureViewDescriptor::default());
 
+                    let vertex_buffer =
+                        self.inner
+                            .device
+                            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                                label: None,
+                                contents: bytemuck::cast_slice(&self.game.vertices()),
+                                usage: wgpu::BufferUsages::VERTEX,
+                            });
+
                     let mut encoder = self
                         .inner
                         .device
@@ -178,6 +247,7 @@ impl Tetris {
                         });
 
                         rpass.set_pipeline(&self.render_pipeline);
+                        rpass.set_vertex_buffer(0, vertex_buffer.slice(..));
                         rpass.draw(0..3, 0..1);
                     }
                     self.inner.queue.submit(Some(encoder.finish()));
