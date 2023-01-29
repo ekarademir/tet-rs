@@ -15,7 +15,7 @@ use game_state::GameState;
 use vertex::Vertex;
 
 #[allow(dead_code)]
-pub(crate) struct Base {
+pub(super) struct Base {
     instance: wgpu::Instance,
     surface: wgpu::Surface,
     adapter: wgpu::Adapter,

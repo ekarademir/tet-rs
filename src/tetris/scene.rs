@@ -1,17 +1,17 @@
 use std::borrow::Cow;
 
-pub(crate) struct Scene {
-    pub(crate) game_area_pipeline: wgpu::RenderPipeline,
+pub(super) struct Scene {
+    pub(super) game_area_pipeline: wgpu::RenderPipeline,
 }
 
 impl<'a> Scene {
-    pub(crate) fn new(base: &'a super::Base) -> Self {
+    pub(super) fn new(base: &'a super::Base) -> Self {
         Scene {
             game_area_pipeline: Scene::build_game_area_pipeline(&base),
         }
     }
 
-    pub(crate) fn game_area(&self, game_state: &super::GameState) -> Vec<super::Vertex> {
+    pub(super) fn game_area(&self, game_state: &super::GameState) -> Vec<super::Vertex> {
         vec![
             [-1.0, -1.0, 0.0, 1.0].into(),
             [0.0, 1.0, 0.0, 1.0].into(),
