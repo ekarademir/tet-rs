@@ -1,4 +1,5 @@
 mod game_state;
+mod scene;
 mod vertex;
 
 use std::borrow::Cow;
@@ -14,7 +15,7 @@ use game_state::GameState;
 use vertex::Vertex;
 
 #[allow(dead_code)]
-struct Inner {
+pub(crate) struct Base {
     instance: wgpu::Instance,
     surface: wgpu::Surface,
     adapter: wgpu::Adapter,
@@ -26,8 +27,8 @@ struct Inner {
     event_loop: winit::event_loop::EventLoop<()>,
 }
 
-impl Inner {
-    async fn new() -> anyhow::Result<Inner> {
+impl Base {
+    async fn new() -> anyhow::Result<Base> {
         let event_loop = winit::event_loop::EventLoop::new();
         let window =
             winit::window::Window::new(&event_loop).context("Couldn't initialise the window")?;
@@ -70,7 +71,7 @@ impl Inner {
 
         surface.configure(&device, &config);
 
-        Ok(Inner {
+        Ok(Base {
             event_loop,
             window,
             window_size,
@@ -85,77 +86,27 @@ impl Inner {
 }
 
 pub struct Tetris {
-    inner: Inner,
-    render_pipeline: wgpu::RenderPipeline,
+    base: Base,
+    // render_pipeline: wgpu::RenderPipeline,
     game_state: GameState,
+    scene: scene::Scene,
 }
 
 impl Tetris {
     pub async fn new() -> anyhow::Result<Tetris> {
-        let inner = Inner::new().await.context("Couldn't initialize inner")?;
-
+        let base = Base::new().await.context("Couldn't initialize base")?;
         let game_state = GameState::default();
-
-        let shader = inner
-            .device
-            .create_shader_module(wgpu::ShaderModuleDescriptor {
-                label: None,
-                source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("game_area.wgsl"))),
-            });
-
-        let pipeline_layout =
-            inner
-                .device
-                .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                    label: None,
-                    bind_group_layouts: &[],
-                    push_constant_ranges: &[],
-                });
-
-        let swapchain_format = inner.surface.get_supported_formats(&inner.adapter)[0];
-
-        let vertex_size = std::mem::size_of::<Vertex>();
-        let vertex_buffers_descriptor = [wgpu::VertexBufferLayout {
-            array_stride: vertex_size as wgpu::BufferAddress,
-            step_mode: wgpu::VertexStepMode::Vertex,
-            attributes: &[wgpu::VertexAttribute {
-                format: wgpu::VertexFormat::Float32x4,
-                offset: 0,
-                shader_location: 0,
-            }],
-        }];
-
-        let render_pipeline =
-            inner
-                .device
-                .create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-                    label: None,
-                    layout: Some(&pipeline_layout),
-                    vertex: wgpu::VertexState {
-                        module: &shader,
-                        entry_point: "vs_main",
-                        buffers: &vertex_buffers_descriptor,
-                    },
-                    fragment: Some(wgpu::FragmentState {
-                        module: &shader,
-                        entry_point: "fs_main",
-                        targets: &[Some(swapchain_format.into())],
-                    }),
-                    primitive: wgpu::PrimitiveState::default(),
-                    depth_stencil: None,
-                    multisample: wgpu::MultisampleState::default(),
-                    multiview: None,
-                });
+        let scene = scene::Scene::new(&base);
 
         Ok(Tetris {
-            inner,
-            render_pipeline,
+            base,
             game_state,
+            scene,
         })
     }
 
     pub async fn run(mut self) {
-        self.inner.event_loop.run(move |event, _, control_flow| {
+        self.base.event_loop.run(move |event, _, control_flow| {
             *control_flow = ControlFlow::Wait;
 
             match event {
@@ -163,16 +114,16 @@ impl Tetris {
                     event: WindowEvent::Resized(size),
                     ..
                 } => {
-                    self.inner.surface_config.width = size.width;
-                    self.inner.surface_config.height = size.height;
-                    self.inner
+                    self.base.surface_config.width = size.width;
+                    self.base.surface_config.height = size.height;
+                    self.base
                         .surface
-                        .configure(&self.inner.device, &self.inner.surface_config);
-                    self.inner.window.request_redraw();
+                        .configure(&self.base.device, &self.base.surface_config);
+                    self.base.window.request_redraw();
                 }
                 Event::RedrawRequested(_) => {
                     let frame = self
-                        .inner
+                        .base
                         .surface
                         .get_current_texture()
                         .expect("Caouldn't get next swapchain texture");
@@ -181,7 +132,7 @@ impl Tetris {
                         .create_view(&wgpu::TextureViewDescriptor::default());
 
                     let game_area_vertex_buffer =
-                        self.inner
+                        self.base
                             .device
                             .create_buffer_init(&wgpu::util::BufferInitDescriptor {
                                 label: None,
@@ -190,7 +141,7 @@ impl Tetris {
                             });
 
                     let mut encoder = self
-                        .inner
+                        .base
                         .device
                         .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
@@ -208,11 +159,11 @@ impl Tetris {
                             depth_stencil_attachment: None,
                         });
 
-                        rpass.set_pipeline(&self.render_pipeline);
+                        rpass.set_pipeline(&self.scene.scene_pipeline);
                         rpass.set_vertex_buffer(0, game_area_vertex_buffer.slice(..));
                         rpass.draw(0..3, 0..1);
                     }
-                    self.inner.queue.submit(Some(encoder.finish()));
+                    self.base.queue.submit(Some(encoder.finish()));
                     frame.present();
                 }
                 Event::WindowEvent {
