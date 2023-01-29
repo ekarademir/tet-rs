@@ -18,6 +18,7 @@ pub struct Scene {
     pub scene_size: AbstractSize,
     pub block_size: u32,
     pub left_margin: u32,
+    pub line_weight: u32,
 }
 
 impl<'a> Scene {
@@ -32,6 +33,7 @@ impl<'a> Scene {
             scene_size: AbstractSize::new(SCREEN_HEIGHT * block_size, SCREEN_WIDTH * block_size),
             block_size,
             left_margin: 0,
+            line_weight: 2,
         }
     }
 
@@ -55,14 +57,43 @@ impl<'a> Scene {
                 self.block_size * BOTTOM_MARGIN,
             )
         };
+        let (outer_left, outer_top, outer_right, outer_bottom) = {
+            (
+                left - self.line_weight,
+                top + self.line_weight,
+                right + self.line_weight,
+                bottom - self.line_weight,
+            )
+        };
         (
             vec![
-                [left, bottom].into(),
-                [right, bottom].into(),
-                [right, top].into(),
+                // Left bar
+                [outer_left, outer_bottom].into(),
+                [left, outer_bottom].into(),
+                [left, outer_top].into(),
+                [outer_left, outer_top].into(),
+                // Top bar
                 [left, top].into(),
+                [right, top].into(),
+                [right, outer_top].into(),
+                [left, outer_top].into(),
+                // Right bar
+                [right, outer_bottom].into(),
+                [outer_right, outer_bottom].into(),
+                [outer_right, outer_top].into(),
+                [right, outer_top].into(),
+                // Bottom bar
+                [outer_left, outer_bottom].into(),
+                [outer_right, outer_bottom].into(),
+                [outer_right, bottom].into(),
+                [outer_left, bottom].into(),
             ],
-            vec![0, 1, 2, 2, 3, 0],
+            vec![
+                0, 1, 2, 2, 3, 0, // Left bar
+                4, 5, 6, 6, 7, 4, // Top bar
+                8, 9, 10, 10, 11, 8, // Right bar
+                12, 13, 14, 14, 15, 12, // Bottom bar
+            ],
         )
     }
 
