@@ -2,12 +2,12 @@ const NUM_ROWS: usize = 28;
 const NUM_COLS: usize = 12;
 
 #[derive(Clone, Copy)]
-pub(super) enum BlockState {
+pub enum BlockState {
     Empty,
     Filled,
 }
 
-pub(super) struct GameState {
+pub struct GameState {
     blocks: [[BlockState; NUM_COLS]; NUM_ROWS],
 }
 

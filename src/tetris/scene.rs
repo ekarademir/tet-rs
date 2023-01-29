@@ -1,21 +1,48 @@
 use std::borrow::Cow;
 
-pub(super) struct Scene {
-    pub(super) game_area_pipeline: wgpu::RenderPipeline,
+use super::vertex::ScreenCoords;
+
+const SCREEN_WIDTH: u32 = 40; // Blocks
+const SCREEN_HEIGHT: u32 = 30; // Blocks
+const GAME_AREA_WIDTH: u32 = 12; // Blocks
+const GAME_AREA_HEIGHT: u32 = 28; // Blocks
+const LEFT_MARGIN: u32 = 1; // Blocks
+const TOP_MARGIN: u32 = 1; // Blocks
+const BOTTOM_MARGIN: u32 = 1; // Blocks
+
+pub type AbstractSize = winit::dpi::PhysicalSize<u32>;
+
+pub struct Scene {
+    pub game_area_pipeline: wgpu::RenderPipeline,
+    pub screen_size: AbstractSize,
+    pub scene_size: AbstractSize,
+    pub block_size: u32,
 }
 
 impl<'a> Scene {
-    pub(super) fn new(base: &'a super::Base) -> Self {
+    pub fn new(base: &'a super::Base) -> Self {
+        let block_size: u32 = base.window_size.height / SCREEN_WIDTH;
         Scene {
             game_area_pipeline: Scene::build_game_area_pipeline(&base),
+            screen_size: base.window_size.clone(),
+            scene_size: AbstractSize::new(SCREEN_HEIGHT * block_size, SCREEN_WIDTH * block_size),
+            block_size,
         }
     }
 
-    pub(super) fn game_area(&self, game_state: &super::GameState) -> Vec<super::Vertex> {
+    pub fn game_area(&self, game_state: &super::GameState) -> Vec<ScreenCoords> {
+        let (left, top, right, bottom) = {
+            (
+                self.block_size * LEFT_MARGIN,
+                self.scene_size.height - self.block_size * TOP_MARGIN,
+                self.block_size * (LEFT_MARGIN + GAME_AREA_WIDTH),
+                self.block_size * BOTTOM_MARGIN,
+            )
+        };
         vec![
-            [-1.0, -1.0, 0.0, 1.0].into(),
-            [0.0, 1.0, 0.0, 1.0].into(),
-            [1.0, -1.0, 0.0, 1.0].into(),
+            [left, bottom].into(),
+            [right, bottom].into(),
+            [right, top].into(),
         ]
     }
 

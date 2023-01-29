@@ -15,7 +15,7 @@ use game_state::GameState;
 use vertex::Vertex;
 
 #[allow(dead_code)]
-pub(super) struct Base {
+pub struct Base {
     instance: wgpu::Instance,
     surface: wgpu::Surface,
     adapter: wgpu::Adapter,
@@ -130,16 +130,22 @@ impl Tetris {
                         .texture
                         .create_view(&wgpu::TextureViewDescriptor::default());
 
-                    let game_area_vertex_buffer =
+                    let game_area_vertex_buffer = {
+                        let game_area: Vec<Vertex> = self
+                            .scene
+                            .game_area(&self.game_state)
+                            .into_iter()
+                            .map(|x| x.to_vertex(&self.base.window_size))
+                            .collect();
+
                         self.base
                             .device
                             .create_buffer_init(&wgpu::util::BufferInitDescriptor {
                                 label: None,
-                                contents: bytemuck::cast_slice(
-                                    &self.scene.game_area(&self.game_state),
-                                ),
+                                contents: bytemuck::cast_slice(&game_area),
                                 usage: wgpu::BufferUsages::VERTEX,
-                            });
+                            })
+                    };
 
                     let mut encoder = self
                         .base
