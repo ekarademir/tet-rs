@@ -11,6 +11,14 @@ impl<'a> Scene {
         }
     }
 
+    pub(crate) fn game_area(&self, game_state: &super::GameState) -> Vec<super::Vertex> {
+        vec![
+            [-1.0, -1.0, 0.0, 1.0].into(),
+            [0.0, 1.0, 0.0, 1.0].into(),
+            [1.0, -1.0, 0.0, 1.0].into(),
+        ]
+    }
+
     fn build_game_area_pipeline(base: &'a super::Base) -> wgpu::RenderPipeline {
         let shader = base
             .device

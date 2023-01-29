@@ -135,7 +135,9 @@ impl Tetris {
                             .device
                             .create_buffer_init(&wgpu::util::BufferInitDescriptor {
                                 label: None,
-                                contents: bytemuck::cast_slice(&self.game_state.game_area()),
+                                contents: bytemuck::cast_slice(
+                                    &self.scene.game_area(&self.game_state),
+                                ),
                                 usage: wgpu::BufferUsages::VERTEX,
                             });
 
