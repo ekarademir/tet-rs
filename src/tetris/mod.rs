@@ -115,6 +115,7 @@ impl Tetris {
                 } => {
                     self.base.surface_config.width = size.width;
                     self.base.surface_config.height = size.height;
+                    self.scene.resize(&size);
                     self.base
                         .surface
                         .configure(&self.base.device, &self.base.surface_config);
@@ -130,21 +131,38 @@ impl Tetris {
                         .texture
                         .create_view(&wgpu::TextureViewDescriptor::default());
 
-                    let game_area_vertex_buffer = {
-                        let game_area: Vec<Vertex> = self
-                            .scene
-                            .game_area(&self.game_state)
+                    let (
+                        game_area_vertex_buffer,
+                        game_area_index_buffer,
+                        game_area_index_buffer_len,
+                    ) = {
+                        let game_area = self.scene.game_area(&self.game_state);
+
+                        let vertices: Vec<_> = game_area
+                            .0
                             .into_iter()
-                            .map(|x| x.to_vertex(&self.base.window_size))
+                            .map(|x| x.to_vertex(&self.base.window_size, self.scene.left_margin))
                             .collect();
 
-                        self.base
-                            .device
-                            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                                label: None,
-                                contents: bytemuck::cast_slice(&game_area),
-                                usage: wgpu::BufferUsages::VERTEX,
-                            })
+                        let indices = game_area.1;
+
+                        (
+                            self.base.device.create_buffer_init(
+                                &wgpu::util::BufferInitDescriptor {
+                                    label: None,
+                                    contents: bytemuck::cast_slice(&vertices),
+                                    usage: wgpu::BufferUsages::VERTEX,
+                                },
+                            ),
+                            self.base.device.create_buffer_init(
+                                &wgpu::util::BufferInitDescriptor {
+                                    label: None,
+                                    contents: bytemuck::cast_slice(&indices),
+                                    usage: wgpu::BufferUsages::INDEX,
+                                },
+                            ),
+                            indices.len() as u32,
+                        )
                     };
 
                     let mut encoder = self
@@ -152,6 +170,7 @@ impl Tetris {
                         .device
                         .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
+                    // Render pass
                     {
                         let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                             label: None,
@@ -167,8 +186,12 @@ impl Tetris {
                         });
 
                         rpass.set_pipeline(&self.scene.game_area_pipeline);
+                        rpass.set_index_buffer(
+                            game_area_index_buffer.slice(..),
+                            wgpu::IndexFormat::Uint16,
+                        );
                         rpass.set_vertex_buffer(0, game_area_vertex_buffer.slice(..));
-                        rpass.draw(0..3, 0..1);
+                        rpass.draw_indexed(0..game_area_index_buffer_len, 0, 0..1);
                     }
                     self.base.queue.submit(Some(encoder.finish()));
                     frame.present();

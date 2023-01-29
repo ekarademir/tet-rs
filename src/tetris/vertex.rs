@@ -45,9 +45,13 @@ impl From<[u32; 2]> for ScreenCoords {
 }
 
 impl ScreenCoords {
-    pub fn to_vertex(&self, window_size: &winit::dpi::PhysicalSize<u32>) -> Vertex {
+    pub fn to_vertex(
+        &self,
+        window_size: &winit::dpi::PhysicalSize<u32>,
+        left_margin: u32,
+    ) -> Vertex {
         let (x_ratio, y_ratio) = {
-            let x = self.x as f32 / window_size.width as f32;
+            let x = (left_margin + self.x) as f32 / window_size.width as f32;
             let y = self.y as f32 / window_size.height as f32;
             (2.0 * x - 1.0, 2.0 * y - 1.0)
         };
