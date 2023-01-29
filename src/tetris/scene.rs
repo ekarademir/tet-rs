@@ -1,17 +1,17 @@
 use std::borrow::Cow;
 
 pub(crate) struct Scene {
-    pub(crate) scene_pipeline: wgpu::RenderPipeline,
+    pub(crate) game_area_pipeline: wgpu::RenderPipeline,
 }
 
 impl<'a> Scene {
     pub(crate) fn new(base: &'a super::Base) -> Self {
         Scene {
-            scene_pipeline: Scene::build_scene_pipeline(&base),
+            game_area_pipeline: Scene::build_game_area_pipeline(&base),
         }
     }
 
-    fn build_scene_pipeline(base: &'a super::Base) -> wgpu::RenderPipeline {
+    fn build_game_area_pipeline(base: &'a super::Base) -> wgpu::RenderPipeline {
         let shader = base
             .device
             .create_shader_module(wgpu::ShaderModuleDescriptor {

@@ -87,7 +87,6 @@ impl Base {
 
 pub struct Tetris {
     base: Base,
-    // render_pipeline: wgpu::RenderPipeline,
     game_state: GameState,
     scene: scene::Scene,
 }
@@ -159,7 +158,7 @@ impl Tetris {
                             depth_stencil_attachment: None,
                         });
 
-                        rpass.set_pipeline(&self.scene.scene_pipeline);
+                        rpass.set_pipeline(&self.scene.game_area_pipeline);
                         rpass.set_vertex_buffer(0, game_area_vertex_buffer.slice(..));
                         rpass.draw(0..3, 0..1);
                     }
