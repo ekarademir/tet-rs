@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, cmp};
 
 use super::vertex::ScreenCoords;
 
@@ -22,22 +22,26 @@ pub struct Scene {
 
 impl<'a> Scene {
     pub fn new(base: &'a super::Base) -> Self {
-        let block_size: u32 = base.window_size.height / SCREEN_HEIGHT;
-        let left_margin = (base.window_size.width - block_size * SCREEN_WIDTH) / 2;
+        let block_size: u32 = cmp::min(
+            base.window_size.height / SCREEN_HEIGHT,
+            base.window_size.width / SCREEN_WIDTH,
+        );
         Scene {
             game_area_pipeline: Scene::build_game_area_pipeline(&base),
             screen_size: base.window_size.clone(),
             scene_size: AbstractSize::new(SCREEN_HEIGHT * block_size, SCREEN_WIDTH * block_size),
             block_size,
-            left_margin,
+            left_margin: 0,
         }
     }
 
     pub fn resize(&mut self, new_size: &winit::dpi::PhysicalSize<u32>) {
-        let block_size: u32 = new_size.height / SCREEN_HEIGHT;
-        let left_margin = (new_size.width - block_size * SCREEN_WIDTH) / 2;
+        let block_size: u32 = cmp::min(
+            new_size.height / SCREEN_HEIGHT,
+            new_size.width / SCREEN_WIDTH,
+        );
         self.block_size = block_size;
-        self.left_margin = left_margin;
+        self.left_margin = 0;
         self.scene_size = AbstractSize::new(SCREEN_HEIGHT * block_size, SCREEN_WIDTH * block_size);
         self.screen_size = new_size.clone();
     }
