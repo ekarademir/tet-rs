@@ -1,6 +1,6 @@
 use bytemuck::{Pod, Zeroable};
 
-use super::scene::AbstractSize;
+use super::scene::Frame;
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Pod, Zeroable)]
@@ -48,7 +48,7 @@ impl From<[u32; 2]> for ScreenCoords {
 }
 
 impl ScreenCoords {
-    pub fn to_vertex(&self, scene_size: &AbstractSize, window_size: &AbstractSize) -> Vertex {
+    pub fn to_vertex(&self, scene_size: &Frame, window_size: &Frame) -> Vertex {
         let (left_margin, bottom_margin) = {
             (
                 window_size.width - scene_size.width,
@@ -68,15 +68,11 @@ impl ScreenCoords {
 }
 
 pub trait Scaleable<T> {
-    fn to_vertices(xs: T, scene_size: &AbstractSize, window_size: &AbstractSize) -> Vec<Vertex>;
+    fn to_vertices(xs: T, scene_size: &Frame, window_size: &Frame) -> Vec<Vertex>;
 }
 
 impl Scaleable<Vec<ScreenCoords>> for Vec<ScreenCoords> {
-    fn to_vertices(
-        xs: Vec<ScreenCoords>,
-        scene_size: &AbstractSize,
-        window_size: &AbstractSize,
-    ) -> Vec<Vertex> {
+    fn to_vertices(xs: Vec<ScreenCoords>, scene_size: &Frame, window_size: &Frame) -> Vec<Vertex> {
         xs.into_iter()
             .map(|x| x.to_vertex(&scene_size, &window_size))
             .collect()

@@ -12,11 +12,11 @@ const LEFT_MARGIN: u32 = 1; // Blocks
 const TOP_MARGIN: u32 = 1; // Blocks
 const BOTTOM_MARGIN: u32 = 1; // Blocks
 
-pub type AbstractSize = winit::dpi::PhysicalSize<u32>;
+pub type Frame = winit::dpi::PhysicalSize<u32>;
 
 pub struct Scene {
-    pub screen_size: AbstractSize,
-    pub scene_size: AbstractSize,
+    pub screen_size: Frame,
+    pub scene_size: Frame,
     pub block_size: u32,
     pub line_weight: u32,
     game_area_pipeline: wgpu::RenderPipeline,
@@ -31,22 +31,22 @@ impl<'a> Scene {
         Scene {
             game_area_pipeline: Scene::build_game_area_pipeline(&base),
             screen_size,
-            scene_size: AbstractSize::new(SCREEN_HEIGHT * block_size, SCREEN_WIDTH * block_size),
+            scene_size: Frame::new(SCREEN_HEIGHT * block_size, SCREEN_WIDTH * block_size),
             block_size,
             line_weight: 2,
         }
     }
 
-    pub fn resize(&mut self, new_size: &AbstractSize) {
+    pub fn resize(&mut self, new_size: &Frame) {
         self.block_size = Scene::calculate_block_size(new_size);
-        self.scene_size = AbstractSize::new(
+        self.scene_size = Frame::new(
             SCREEN_HEIGHT * self.block_size,
             SCREEN_WIDTH * self.block_size,
         );
         self.screen_size = new_size.clone();
     }
 
-    fn calculate_block_size(screen_size: &AbstractSize) -> u32 {
+    fn calculate_block_size(screen_size: &Frame) -> u32 {
         let block_size: u32 = cmp::min(
             screen_size.height / SCREEN_HEIGHT,
             screen_size.width / SCREEN_WIDTH,
