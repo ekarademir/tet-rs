@@ -23,15 +23,10 @@ pub struct Base {
     queue: wgpu::Queue,
     window_size: winit::dpi::PhysicalSize<u32>,
     surface_config: wgpu::SurfaceConfiguration,
-    window: winit::window::Window,
-    event_loop: winit::event_loop::EventLoop<()>,
 }
 
 impl Base {
-    async fn new() -> anyhow::Result<Base> {
-        let event_loop = winit::event_loop::EventLoop::new();
-        let window =
-            winit::window::Window::new(&event_loop).context("Couldn't initialise the window")?;
+    async fn new(window: &winit::window::Window) -> anyhow::Result<Base> {
         let window_size = window.inner_size();
 
         let instance = wgpu::Instance::new(wgpu::Backends::all());
@@ -72,8 +67,6 @@ impl Base {
         surface.configure(&device, &config);
 
         Ok(Base {
-            event_loop,
-            window,
             window_size,
             instance,
             surface,
@@ -92,8 +85,10 @@ pub struct Tetris {
 }
 
 impl Tetris {
-    pub async fn new() -> anyhow::Result<Tetris> {
-        let base = Base::new().await.context("Couldn't initialize base")?;
+    pub async fn new(window: &winit::window::Window) -> anyhow::Result<Tetris> {
+        let base = Base::new(window)
+            .await
+            .context("Couldn't initialize base")?;
         let game_state = GameState::default();
         let scene = scene::Scene::new(&base);
 
@@ -103,105 +98,109 @@ impl Tetris {
             scene,
         })
     }
+}
 
-    pub async fn run(mut self) {
-        self.base.event_loop.run(move |event, _, control_flow| {
-            *control_flow = ControlFlow::Wait;
+pub async fn run(
+    window: winit::window::Window,
+    event_loop: winit::event_loop::EventLoop<()>,
+    mut tetris: Tetris,
+) {
+    event_loop.run(move |event, _, control_flow| {
+      *control_flow = ControlFlow::Wait;
 
-            match event {
-                Event::WindowEvent {
-                    event: WindowEvent::Resized(size),
-                    ..
-                } => {
-                    self.base.surface_config.width = size.width;
-                    self.base.surface_config.height = size.height;
-                    self.scene.resize(&size);
-                    self.base
-                        .surface
-                        .configure(&self.base.device, &self.base.surface_config);
-                    self.base.window.request_redraw();
-                }
-                Event::RedrawRequested(_) => {
-                    let frame = self
-                        .base
-                        .surface
-                        .get_current_texture()
-                        .expect("Caouldn't get next swapchain texture");
-                    let view = frame
-                        .texture
-                        .create_view(&wgpu::TextureViewDescriptor::default());
+      match event {
+          Event::WindowEvent {
+              event: WindowEvent::Resized(size),
+              ..
+          } => {
+              tetris.base.surface_config.width = size.width;
+              tetris.base.surface_config.height = size.height;
+              tetris.scene.resize(&size);
+              tetris.base
+                  .surface
+                  .configure(&tetris.base.device, &tetris.base.surface_config);
+                  window.request_redraw();
+          }
+          Event::RedrawRequested(_) => {
+              let frame = tetris
+                  .base
+                  .surface
+                  .get_current_texture()
+                  .expect("Caouldn't get next swapchain texture");
+              let view = frame
+                  .texture
+                  .create_view(&wgpu::TextureViewDescriptor::default());
 
-                    let (
-                        game_area_vertex_buffer,
-                        game_area_index_buffer,
-                        game_area_index_buffer_len,
-                    ) = {
-                        let game_area = self.scene.game_area(&self.game_state);
+              let (
+                  game_area_vertex_buffer,
+                  game_area_index_buffer,
+                  game_area_index_buffer_len,
+              ) = {
+                  let game_area = tetris.scene.game_area(&tetris.game_state);
 
-                        let vertices: Vec<_> = game_area
-                            .0
-                            .into_iter()
-                            .map(|x| x.to_vertex(&self.base.window_size, self.scene.left_margin))
-                            .collect();
+                  let vertices: Vec<_> = game_area
+                      .0
+                      .into_iter()
+                      .map(|x| x.to_vertex(&tetris.base.window_size, tetris.scene.left_margin))
+                      .collect();
 
-                        let indices = game_area.1;
+                  let indices = game_area.1;
 
-                        (
-                            self.base.device.create_buffer_init(
-                                &wgpu::util::BufferInitDescriptor {
-                                    label: None,
-                                    contents: bytemuck::cast_slice(&vertices),
-                                    usage: wgpu::BufferUsages::VERTEX,
-                                },
-                            ),
-                            self.base.device.create_buffer_init(
-                                &wgpu::util::BufferInitDescriptor {
-                                    label: None,
-                                    contents: bytemuck::cast_slice(&indices),
-                                    usage: wgpu::BufferUsages::INDEX,
-                                },
-                            ),
-                            indices.len() as u32,
-                        )
-                    };
+                  (
+                    tetris.base.device.create_buffer_init(
+                          &wgpu::util::BufferInitDescriptor {
+                              label: None,
+                              contents: bytemuck::cast_slice(&vertices),
+                              usage: wgpu::BufferUsages::VERTEX,
+                          },
+                      ),
+                      tetris.base.device.create_buffer_init(
+                          &wgpu::util::BufferInitDescriptor {
+                              label: None,
+                              contents: bytemuck::cast_slice(&indices),
+                              usage: wgpu::BufferUsages::INDEX,
+                          },
+                      ),
+                      indices.len() as u32,
+                  )
+              };
 
-                    let mut encoder = self
-                        .base
-                        .device
-                        .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+              let mut encoder = tetris
+                  .base
+                  .device
+                  .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
-                    // Render pass
-                    {
-                        let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                            label: None,
-                            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                                view: &view,
-                                resolve_target: None,
-                                ops: wgpu::Operations {
-                                    load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
-                                    store: true,
-                                },
-                            })],
-                            depth_stencil_attachment: None,
-                        });
+              // Render pass
+              {
+                  let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                      label: None,
+                      color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                          view: &view,
+                          resolve_target: None,
+                          ops: wgpu::Operations {
+                              load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
+                              store: true,
+                          },
+                      })],
+                      depth_stencil_attachment: None,
+                  });
 
-                        rpass.set_pipeline(&self.scene.game_area_pipeline);
-                        rpass.set_index_buffer(
-                            game_area_index_buffer.slice(..),
-                            wgpu::IndexFormat::Uint16,
-                        );
-                        rpass.set_vertex_buffer(0, game_area_vertex_buffer.slice(..));
-                        rpass.draw_indexed(0..game_area_index_buffer_len, 0, 0..1);
-                    }
-                    self.base.queue.submit(Some(encoder.finish()));
-                    frame.present();
-                }
-                Event::WindowEvent {
-                    event: WindowEvent::CloseRequested,
-                    ..
-                } => *control_flow = ControlFlow::Exit,
-                _ => {}
-            }
-        });
-    }
+                  rpass.set_pipeline(&tetris.scene.game_area_pipeline);
+                  rpass.set_index_buffer(
+                      game_area_index_buffer.slice(..),
+                      wgpu::IndexFormat::Uint16,
+                  );
+                  rpass.set_vertex_buffer(0, game_area_vertex_buffer.slice(..));
+                  rpass.draw_indexed(0..game_area_index_buffer_len, 0, 0..1);
+              }
+              tetris.base.queue.submit(Some(encoder.finish()));
+              frame.present();
+          }
+          Event::WindowEvent {
+              event: WindowEvent::CloseRequested,
+              ..
+          } => *control_flow = ControlFlow::Exit,
+          _ => {}
+      }
+  });
 }

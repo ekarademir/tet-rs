@@ -15,9 +15,12 @@ fn main() -> anyhow::Result<()> {
 }
 
 async fn execute() -> anyhow::Result<()> {
-    Ok(tetris::Tetris::new()
+    let event_loop = winit::event_loop::EventLoop::new();
+    let window =
+        winit::window::Window::new(&event_loop).context("Couldn't initialise the window")?;
+    let tetris = tetris::Tetris::new(&window)
         .await
-        .context("Can't create tetris")?
-        .run()
-        .await)
+        .context("Can't create tetris")?;
+
+    Ok(tetris::run(window, event_loop, tetris).await)
 }
