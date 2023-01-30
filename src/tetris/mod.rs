@@ -99,6 +99,15 @@ impl Tetris {
         })
     }
 
+    pub fn resize(&mut self, size: winit::dpi::PhysicalSize<u32>) {
+        self.base.surface_config.width = size.width;
+        self.base.surface_config.height = size.height;
+        self.scene.resize(&size);
+        self.base
+            .surface
+            .configure(&self.base.device, &self.base.surface_config);
+    }
+
     pub fn render_game_scene(&self, view: &wgpu::TextureView) {
         let (game_area_vertex_buffer, game_area_index_buffer, game_area_index_buffer_len) = {
             let game_area = self.scene.game_area(&self.game_state);
@@ -172,13 +181,7 @@ pub async fn run(
                 event: WindowEvent::Resized(size),
                 ..
             } => {
-                tetris.base.surface_config.width = size.width;
-                tetris.base.surface_config.height = size.height;
-                tetris.scene.resize(&size);
-                tetris
-                    .base
-                    .surface
-                    .configure(&tetris.base.device, &tetris.base.surface_config);
+                tetris.resize(size);
                 window.request_redraw();
             }
             Event::RedrawRequested(_) => {
