@@ -51,8 +51,8 @@ impl ScreenCoord {
     pub fn to_vertex(&self, scene_size: &Frame, window_size: &Frame) -> Vertex {
         let (left_margin, bottom_margin) = {
             (
-                window_size.width - scene_size.width,
-                window_size.height - scene_size.height,
+                (window_size.width - scene_size.width) / 2,
+                (window_size.height - scene_size.height) / 2,
             )
         };
         let (x_ratio, y_ratio) = {
