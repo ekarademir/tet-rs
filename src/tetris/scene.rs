@@ -1,5 +1,7 @@
 use std::{borrow::Cow, cmp};
 
+use wgpu::util::DeviceExt;
+
 use super::vertex::ScreenCoords;
 
 const SCREEN_WIDTH: u32 = 30; // Blocks
@@ -46,6 +48,67 @@ impl<'a> Scene {
         self.left_margin = 0;
         self.scene_size = AbstractSize::new(SCREEN_HEIGHT * block_size, SCREEN_WIDTH * block_size);
         self.screen_size = new_size.clone();
+    }
+
+    pub fn render_game_scene(&self, tetris: &super::Tetris, view: &wgpu::TextureView) {
+        let (game_area_vertex_buffer, game_area_index_buffer, game_area_index_buffer_len) = {
+            let game_area = self.game_area(&tetris.game_state);
+
+            let vertices: Vec<_> = game_area
+                .0
+                .into_iter()
+                .map(|x| x.to_vertex(&tetris.base.window_size, self.left_margin))
+                .collect();
+
+            let indices = game_area.1;
+
+            (
+                tetris
+                    .base
+                    .device
+                    .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                        label: None,
+                        contents: bytemuck::cast_slice(&vertices),
+                        usage: wgpu::BufferUsages::VERTEX,
+                    }),
+                tetris
+                    .base
+                    .device
+                    .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                        label: None,
+                        contents: bytemuck::cast_slice(&indices),
+                        usage: wgpu::BufferUsages::INDEX,
+                    }),
+                indices.len() as u32,
+            )
+        };
+
+        let mut encoder = tetris
+            .base
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+
+        // Render pass
+        {
+            let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: None,
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &view,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
+                        store: true,
+                    },
+                })],
+                depth_stencil_attachment: None,
+            });
+
+            rpass.set_pipeline(&self.game_area_pipeline);
+            rpass.set_index_buffer(game_area_index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+            rpass.set_vertex_buffer(0, game_area_vertex_buffer.slice(..));
+            rpass.draw_indexed(0..game_area_index_buffer_len, 0, 0..1);
+        }
+        tetris.base.queue.submit(Some(encoder.finish()));
     }
 
     pub fn game_area(&self, game_state: &super::GameState) -> (Vec<ScreenCoords>, Vec<u16>) {

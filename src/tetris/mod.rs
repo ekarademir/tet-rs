@@ -4,7 +4,6 @@ mod scene;
 mod vertex;
 
 use anyhow::Context;
-use wgpu::util::DeviceExt;
 use winit::{
     event::{Event, WindowEvent},
     event_loop::ControlFlow,
@@ -44,63 +43,8 @@ impl Tetris {
             .configure(&self.base.device, &self.base.surface_config);
     }
 
-    pub fn render_game_scene(&self, view: &wgpu::TextureView) {
-        let (game_area_vertex_buffer, game_area_index_buffer, game_area_index_buffer_len) = {
-            let game_area = self.scene.game_area(&self.game_state);
-
-            let vertices: Vec<_> = game_area
-                .0
-                .into_iter()
-                .map(|x| x.to_vertex(&self.base.window_size, self.scene.left_margin))
-                .collect();
-
-            let indices = game_area.1;
-
-            (
-                self.base
-                    .device
-                    .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                        label: None,
-                        contents: bytemuck::cast_slice(&vertices),
-                        usage: wgpu::BufferUsages::VERTEX,
-                    }),
-                self.base
-                    .device
-                    .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                        label: None,
-                        contents: bytemuck::cast_slice(&indices),
-                        usage: wgpu::BufferUsages::INDEX,
-                    }),
-                indices.len() as u32,
-            )
-        };
-
-        let mut encoder = self
-            .base
-            .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
-
-        // Render pass
-        {
-            let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: None,
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &view,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
-                        store: true,
-                    },
-                })],
-                depth_stencil_attachment: None,
-            });
-
-            rpass.set_pipeline(&self.scene.game_area_pipeline);
-            rpass.set_index_buffer(game_area_index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-            rpass.set_vertex_buffer(0, game_area_vertex_buffer.slice(..));
-            rpass.draw_indexed(0..game_area_index_buffer_len, 0, 0..1);
-        }
-        self.base.queue.submit(Some(encoder.finish()));
+    pub fn render_all(&self, view: &wgpu::TextureView) {
+        self.scene.render_game_scene(&self, view);
     }
 }
 
@@ -130,7 +74,7 @@ pub async fn run(
                     .texture
                     .create_view(&wgpu::TextureViewDescriptor::default());
 
-                tetris.render_game_scene(&view);
+                tetris.render_all(&view);
                 frame.present();
             }
             Event::WindowEvent {
