@@ -15,12 +15,11 @@ const BOTTOM_MARGIN: u32 = 1; // Blocks
 pub type AbstractSize = winit::dpi::PhysicalSize<u32>;
 
 pub struct Scene {
-    pub game_area_pipeline: wgpu::RenderPipeline,
     pub screen_size: AbstractSize,
     pub scene_size: AbstractSize,
     pub block_size: u32,
-    pub left_margin: u32,
     pub line_weight: u32,
+    game_area_pipeline: wgpu::RenderPipeline,
 }
 
 impl<'a> Scene {
@@ -34,7 +33,6 @@ impl<'a> Scene {
             screen_size: base.window_size.clone(),
             scene_size: AbstractSize::new(SCREEN_HEIGHT * block_size, SCREEN_WIDTH * block_size),
             block_size,
-            left_margin: 0,
             line_weight: 2,
         }
     }
@@ -45,7 +43,6 @@ impl<'a> Scene {
             new_size.width / SCREEN_WIDTH,
         );
         self.block_size = block_size;
-        self.left_margin = 0;
         self.scene_size = AbstractSize::new(SCREEN_HEIGHT * block_size, SCREEN_WIDTH * block_size);
         self.screen_size = new_size.clone();
     }
@@ -57,7 +54,7 @@ impl<'a> Scene {
             let vertices: Vec<_> = game_area
                 .0
                 .into_iter()
-                .map(|x| x.to_vertex(&tetris.base.window_size, self.left_margin))
+                .map(|x| x.to_vertex(&tetris.base.window_size, 0))
                 .collect();
 
             let indices = game_area.1;
@@ -111,7 +108,7 @@ impl<'a> Scene {
         tetris.base.queue.submit(Some(encoder.finish()));
     }
 
-    pub fn game_area(&self, game_state: &super::GameState) -> (Vec<ScreenCoords>, Vec<u16>) {
+    fn game_area(&self, game_state: &super::GameState) -> (Vec<ScreenCoords>, Vec<u16>) {
         let (left, top, right, bottom) = {
             (
                 self.block_size * LEFT_MARGIN,

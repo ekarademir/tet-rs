@@ -43,8 +43,22 @@ impl Tetris {
             .configure(&self.base.device, &self.base.surface_config);
     }
 
-    pub fn render_all(&self, view: &wgpu::TextureView) {
-        self.scene.render_game_scene(&self, view);
+    pub fn render_all(&self) {
+        let frame = self.get_next_frame();
+        let view = frame
+            .texture
+            .create_view(&wgpu::TextureViewDescriptor::default());
+
+        self.scene.render_game_scene(&self, &view);
+
+        frame.present();
+    }
+
+    fn get_next_frame(&self) -> wgpu::SurfaceTexture {
+        self.base
+            .surface
+            .get_current_texture()
+            .expect("Couldn't get next swapchain texture")
     }
 }
 
@@ -65,17 +79,7 @@ pub async fn run(
                 window.request_redraw();
             }
             Event::RedrawRequested(_) => {
-                let frame = tetris
-                    .base
-                    .surface
-                    .get_current_texture()
-                    .expect("Caouldn't get next swapchain texture");
-                let view = frame
-                    .texture
-                    .create_view(&wgpu::TextureViewDescriptor::default());
-
-                tetris.render_all(&view);
-                frame.present();
+                tetris.render_all();
             }
             Event::WindowEvent {
                 event: WindowEvent::CloseRequested,
