@@ -1,8 +1,7 @@
+mod base;
 mod game_state;
 mod scene;
 mod vertex;
-
-use std::borrow::Cow;
 
 use anyhow::Context;
 use wgpu::util::DeviceExt;
@@ -11,72 +10,9 @@ use winit::{
     event_loop::ControlFlow,
 };
 
+use base::Base;
 use game_state::GameState;
 use vertex::Vertex;
-
-#[allow(dead_code)]
-pub struct Base {
-    instance: wgpu::Instance,
-    surface: wgpu::Surface,
-    adapter: wgpu::Adapter,
-    device: wgpu::Device,
-    queue: wgpu::Queue,
-    window_size: winit::dpi::PhysicalSize<u32>,
-    surface_config: wgpu::SurfaceConfiguration,
-}
-
-impl Base {
-    async fn new(window: &winit::window::Window) -> anyhow::Result<Base> {
-        let window_size = window.inner_size();
-
-        let instance = wgpu::Instance::new(wgpu::Backends::all());
-        let surface = unsafe { instance.create_surface(&window) };
-        let adapter = instance
-            .request_adapter(&wgpu::RequestAdapterOptions {
-                power_preference: wgpu::PowerPreference::default(),
-                force_fallback_adapter: false,
-                compatible_surface: Some(&surface),
-            })
-            .await
-            .context("Couldn't obtain an adapter")?;
-
-        let (device, queue) = adapter
-            .request_device(
-                &wgpu::DeviceDescriptor {
-                    label: None,
-                    features: wgpu::Features::empty(),
-                    limits: wgpu::Limits::downlevel_webgl2_defaults()
-                        .using_resolution(adapter.limits()),
-                },
-                None,
-            )
-            .await
-            .context("Couldn't create logical device and job queue")?;
-
-        let swapchain_format = surface.get_supported_formats(&adapter)[0];
-
-        let config = wgpu::SurfaceConfiguration {
-            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-            format: swapchain_format,
-            width: window_size.width,
-            height: window_size.height,
-            present_mode: wgpu::PresentMode::Fifo,
-            alpha_mode: surface.get_supported_alpha_modes(&adapter)[0],
-        };
-
-        surface.configure(&device, &config);
-
-        Ok(Base {
-            window_size,
-            instance,
-            surface,
-            surface_config: config,
-            adapter,
-            device,
-            queue,
-        })
-    }
-}
 
 pub struct Tetris {
     base: Base,
