@@ -1,5 +1,7 @@
 use bytemuck::{Pod, Zeroable};
 
+use super::scene::AbstractSize;
+
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Pod, Zeroable)]
 pub struct Vertex {
@@ -46,21 +48,12 @@ impl From<[u32; 2]> for ScreenCoords {
 }
 
 impl ScreenCoords {
-    pub fn to_vertex(
-        &self,
-        scene_size: &winit::dpi::PhysicalSize<u32>,
-        window_size: &winit::dpi::PhysicalSize<u32>,
-    ) -> Vertex {
-        let (dx, dy) = {
+    pub fn to_vertex(&self, scene_size: &AbstractSize, window_size: &AbstractSize) -> Vertex {
+        let (left_margin, bottom_margin) = {
             (
                 window_size.width - scene_size.width,
                 window_size.height - scene_size.height,
             )
-        };
-        let (left_margin, bottom_margin) = {
-            let x = if dx >= 0 { dx } else { 0 };
-            let y = if dy >= 0 { dy } else { 0 };
-            (x / 2, y / 2)
         };
         let (x_ratio, y_ratio) = {
             let x = (left_margin + self.x) as f32 / window_size.width as f32;
@@ -71,5 +64,21 @@ impl ScreenCoords {
         Vertex {
             _pos: [x_ratio, y_ratio, 0.0, 1.0],
         }
+    }
+}
+
+pub trait Scaleable<T> {
+    fn to_vertices(xs: T, scene_size: &AbstractSize, window_size: &AbstractSize) -> Vec<Vertex>;
+}
+
+impl Scaleable<Vec<ScreenCoords>> for Vec<ScreenCoords> {
+    fn to_vertices(
+        xs: Vec<ScreenCoords>,
+        scene_size: &AbstractSize,
+        window_size: &AbstractSize,
+    ) -> Vec<Vertex> {
+        xs.into_iter()
+            .map(|x| x.to_vertex(&scene_size, &window_size))
+            .collect()
     }
 }
