@@ -2,6 +2,7 @@ use std::{borrow::Cow, cmp};
 
 use wgpu::util::DeviceExt;
 
+use super::colours;
 use super::vertex::{ScreenCoord, ToVertices};
 
 const SCREEN_WIDTH: u32 = 30; // Blocks
@@ -33,7 +34,7 @@ impl<'a> Scene {
             screen_size,
             scene_size: Frame::new(SCREEN_HEIGHT * block_size, SCREEN_WIDTH * block_size),
             block_size,
-            line_weight: 2,
+            line_weight: 3,
         }
     }
 
@@ -69,7 +70,10 @@ impl<'a> Scene {
         let (game_area_vertex_buffer, game_area_index_buffer, game_area_index_buffer_len) = {
             let game_area = self.game_area();
 
-            let vertices = game_area.0.to_vertices(&self.scene_size, &self.screen_size);
+            let vertices =
+                game_area
+                    .0
+                    .to_vertices(&self.scene_size, &self.screen_size, colours::DARK_GREEN);
             let indices = game_area.1;
 
             (
@@ -192,11 +196,20 @@ impl<'a> Scene {
         let vertex_buffers_descriptor = [wgpu::VertexBufferLayout {
             array_stride: vertex_size as wgpu::BufferAddress,
             step_mode: wgpu::VertexStepMode::Vertex,
-            attributes: &[wgpu::VertexAttribute {
-                format: wgpu::VertexFormat::Float32x4,
-                offset: 0,
-                shader_location: 0,
-            }],
+            attributes: &[
+                // Coords
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Float32x4,
+                    offset: 0,
+                    shader_location: 0,
+                },
+                // Colour
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Float32x4,
+                    offset: 4 * 4,
+                    shader_location: 1,
+                },
+            ],
         }];
 
         base.device

@@ -1,17 +1,20 @@
 use bytemuck::{Pod, Zeroable};
 
+use super::colours;
 use super::scene::Frame;
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Pod, Zeroable)]
 pub struct Vertex {
     _pos: [f32; 4],
+    _colour: [f32; 4],
 }
 
 impl From<[f32; 2]> for Vertex {
     fn from(value: [f32; 2]) -> Self {
         Vertex {
             _pos: [value[0], value[1], 0.0, 1.0],
+            _colour: colours::DARK_GREEN.into(),
         }
     }
 }
@@ -20,6 +23,7 @@ impl From<[f32; 3]> for Vertex {
     fn from(value: [f32; 3]) -> Self {
         Vertex {
             _pos: [value[0], value[1], value[2], 1.0],
+            _colour: colours::DARK_GREEN.into(),
         }
     }
 }
@@ -28,6 +32,16 @@ impl From<[f32; 4]> for Vertex {
     fn from(value: [f32; 4]) -> Self {
         Vertex {
             _pos: [value[0], value[1], value[2], value[3]],
+            _colour: colours::DARK_GREEN.into(),
+        }
+    }
+}
+
+impl From<[f32; 8]> for Vertex {
+    fn from(value: [f32; 8]) -> Self {
+        Vertex {
+            _pos: [value[0], value[1], value[2], value[3]],
+            _colour: [value[4], value[5], value[6], value[7]],
         }
     }
 }
@@ -48,7 +62,12 @@ impl From<[u32; 2]> for ScreenCoord {
 }
 
 impl ScreenCoord {
-    pub fn to_vertex(&self, scene_size: &Frame, window_size: &Frame) -> Vertex {
+    pub fn to_vertex(
+        &self,
+        scene_size: &Frame,
+        window_size: &Frame,
+        colour: colours::Colour,
+    ) -> Vertex {
         let (left_margin, bottom_margin) = {
             (
                 (window_size.width - scene_size.width) / 2,
@@ -63,18 +82,29 @@ impl ScreenCoord {
 
         Vertex {
             _pos: [x_ratio, y_ratio, 0.0, 1.0],
+            _colour: colour.into(),
         }
     }
 }
 
 pub trait ToVertices {
-    fn to_vertices(&self, scene_size: &Frame, window_size: &Frame) -> Vec<Vertex>;
+    fn to_vertices(
+        &self,
+        scene_size: &Frame,
+        window_size: &Frame,
+        colour: colours::Colour,
+    ) -> Vec<Vertex>;
 }
 
 impl ToVertices for Vec<ScreenCoord> {
-    fn to_vertices(&self, scene_size: &Frame, window_size: &Frame) -> Vec<Vertex> {
+    fn to_vertices(
+        &self,
+        scene_size: &Frame,
+        window_size: &Frame,
+        colour: colours::Colour,
+    ) -> Vec<Vertex> {
         self.into_iter()
-            .map(|x| x.to_vertex(&scene_size, &window_size))
+            .map(|x| x.to_vertex(&scene_size, &window_size, colour))
             .collect()
     }
 }
