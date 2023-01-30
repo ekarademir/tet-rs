@@ -30,6 +30,7 @@ impl From<[f32; 4]> for Vertex {
     }
 }
 
+#[derive(Debug)]
 pub struct ScreenCoords {
     x: u32,
     y: u32,
@@ -47,12 +48,23 @@ impl From<[u32; 2]> for ScreenCoords {
 impl ScreenCoords {
     pub fn to_vertex(
         &self,
+        scene_size: &winit::dpi::PhysicalSize<u32>,
         window_size: &winit::dpi::PhysicalSize<u32>,
-        left_margin: u32,
     ) -> Vertex {
+        let (dx, dy) = {
+            (
+                window_size.width - scene_size.width,
+                window_size.height - scene_size.height,
+            )
+        };
+        let (left_margin, bottom_margin) = {
+            let x = if dx >= 0 { dx } else { 0 };
+            let y = if dy >= 0 { dy } else { 0 };
+            (x / 2, y / 2)
+        };
         let (x_ratio, y_ratio) = {
             let x = (left_margin + self.x) as f32 / window_size.width as f32;
-            let y = self.y as f32 / window_size.height as f32;
+            let y = (self.y + bottom_margin) as f32 / window_size.height as f32;
             (2.0 * x - 1.0, 2.0 * y - 1.0)
         };
 

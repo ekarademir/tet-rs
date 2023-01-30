@@ -24,27 +24,45 @@ pub struct Scene {
 
 impl<'a> Scene {
     pub fn new(base: &'a super::Base) -> Self {
-        let block_size: u32 = cmp::min(
-            base.window_size.height / SCREEN_HEIGHT,
-            base.window_size.width / SCREEN_WIDTH,
-        );
+        let screen_size = base.window_size.clone();
+
+        let block_size: u32 = Scene::calculate_block_size(&screen_size);
+
         Scene {
             game_area_pipeline: Scene::build_game_area_pipeline(&base),
-            screen_size: base.window_size.clone(),
+            screen_size,
             scene_size: AbstractSize::new(SCREEN_HEIGHT * block_size, SCREEN_WIDTH * block_size),
             block_size,
             line_weight: 2,
         }
     }
 
-    pub fn resize(&mut self, new_size: &winit::dpi::PhysicalSize<u32>) {
-        let block_size: u32 = cmp::min(
-            new_size.height / SCREEN_HEIGHT,
-            new_size.width / SCREEN_WIDTH,
+    pub fn resize(&mut self, new_size: &AbstractSize) {
+        self.block_size = Scene::calculate_block_size(new_size);
+        self.scene_size = AbstractSize::new(
+            SCREEN_HEIGHT * self.block_size,
+            SCREEN_WIDTH * self.block_size,
         );
-        self.block_size = block_size;
-        self.scene_size = AbstractSize::new(SCREEN_HEIGHT * block_size, SCREEN_WIDTH * block_size);
         self.screen_size = new_size.clone();
+    }
+
+    fn calculate_block_size(screen_size: &AbstractSize) -> u32 {
+        let block_size: u32 = cmp::min(
+            screen_size.height / SCREEN_HEIGHT,
+            screen_size.width / SCREEN_WIDTH,
+        );
+
+        if block_size * SCREEN_WIDTH > screen_size.width
+            || block_size * SCREEN_HEIGHT > screen_size.height
+        {
+            if block_size > 5 {
+                block_size - 5
+            } else {
+                0
+            }
+        } else {
+            block_size
+        }
     }
 
     pub fn render_game_scene(&self, tetris: &super::Tetris, view: &wgpu::TextureView) {
@@ -54,7 +72,7 @@ impl<'a> Scene {
             let vertices: Vec<_> = game_area
                 .0
                 .into_iter()
-                .map(|x| x.to_vertex(&tetris.base.window_size, 0))
+                .map(|x| x.to_vertex(&self.scene_size, &self.screen_size))
                 .collect();
 
             let indices = game_area.1;
