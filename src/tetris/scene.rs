@@ -2,7 +2,7 @@ use std::{borrow::Cow, cmp};
 
 use wgpu::util::DeviceExt;
 
-use super::vertex::{Scaleable, ScreenCoords};
+use super::vertex::{ScreenCoords, ToVertices};
 
 const SCREEN_WIDTH: u32 = 30; // Blocks
 const SCREEN_HEIGHT: u32 = 30; // Blocks
