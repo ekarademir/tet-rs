@@ -67,13 +67,13 @@ impl ScreenCoords {
     }
 }
 
-pub trait Scaleable<T> {
-    fn to_vertices(xs: T, scene_size: &Frame, window_size: &Frame) -> Vec<Vertex>;
+pub trait Scaleable {
+    fn to_vertices(&self, scene_size: &Frame, window_size: &Frame) -> Vec<Vertex>;
 }
 
-impl Scaleable<Vec<ScreenCoords>> for Vec<ScreenCoords> {
-    fn to_vertices(xs: Vec<ScreenCoords>, scene_size: &Frame, window_size: &Frame) -> Vec<Vertex> {
-        xs.into_iter()
+impl Scaleable for Vec<ScreenCoords> {
+    fn to_vertices(&self, scene_size: &Frame, window_size: &Frame) -> Vec<Vertex> {
+        self.into_iter()
             .map(|x| x.to_vertex(&scene_size, &window_size))
             .collect()
     }

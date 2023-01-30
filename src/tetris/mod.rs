@@ -11,12 +11,13 @@ use winit::{
 
 use base::Base;
 use game_state::GameState;
+use scene::{Frame, Scene};
 use vertex::Vertex;
 
 pub struct Tetris {
     base: Base,
     game_state: GameState,
-    scene: scene::Scene,
+    scene: Scene,
 }
 
 impl Tetris {
@@ -25,7 +26,7 @@ impl Tetris {
             .await
             .context("Couldn't initialize base")?;
         let game_state = GameState::default();
-        let scene = scene::Scene::new(&base);
+        let scene = Scene::new(&base);
 
         Ok(Tetris {
             base,
@@ -34,7 +35,7 @@ impl Tetris {
         })
     }
 
-    pub fn resize(&mut self, size: winit::dpi::PhysicalSize<u32>) {
+    pub fn resize(&mut self, size: Frame) {
         self.base.surface_config.width = size.width;
         self.base.surface_config.height = size.height;
         self.scene.resize(&size);
@@ -49,7 +50,7 @@ impl Tetris {
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
 
-        self.scene.render_game_scene(&self, &view);
+        self.scene.render_game_area(&self, &view);
 
         frame.present();
     }

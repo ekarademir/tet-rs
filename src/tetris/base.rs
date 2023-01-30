@@ -7,7 +7,7 @@ pub struct Base {
     pub adapter: wgpu::Adapter,
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
-    pub window_size: winit::dpi::PhysicalSize<u32>,
+    pub window_size: super::Frame,
     pub surface_config: wgpu::SurfaceConfiguration,
 }
 

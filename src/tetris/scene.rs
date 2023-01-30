@@ -2,7 +2,7 @@ use std::{borrow::Cow, cmp};
 
 use wgpu::util::DeviceExt;
 
-use super::vertex::ScreenCoords;
+use super::vertex::{Scaleable, ScreenCoords};
 
 const SCREEN_WIDTH: u32 = 30; // Blocks
 const SCREEN_HEIGHT: u32 = 30; // Blocks
@@ -65,16 +65,11 @@ impl<'a> Scene {
         }
     }
 
-    pub fn render_game_scene(&self, tetris: &super::Tetris, view: &wgpu::TextureView) {
+    pub fn render_game_area(&self, tetris: &super::Tetris, view: &wgpu::TextureView) {
         let (game_area_vertex_buffer, game_area_index_buffer, game_area_index_buffer_len) = {
-            let game_area = self.game_area(&tetris.game_state);
+            let game_area = self.game_area();
 
-            let vertices: Vec<_> = game_area
-                .0
-                .into_iter()
-                .map(|x| x.to_vertex(&self.scene_size, &self.screen_size))
-                .collect();
-
+            let vertices = game_area.0.to_vertices(&self.scene_size, &self.screen_size);
             let indices = game_area.1;
 
             (
@@ -126,7 +121,7 @@ impl<'a> Scene {
         tetris.base.queue.submit(Some(encoder.finish()));
     }
 
-    fn game_area(&self, game_state: &super::GameState) -> (Vec<ScreenCoords>, Vec<u16>) {
+    fn game_area(&self) -> (Vec<ScreenCoords>, Vec<u16>) {
         let (left, top, right, bottom) = {
             (
                 self.block_size * LEFT_MARGIN,
