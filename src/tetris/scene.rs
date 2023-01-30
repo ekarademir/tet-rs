@@ -2,7 +2,7 @@ use std::{borrow::Cow, cmp};
 
 use wgpu::util::DeviceExt;
 
-use super::vertex::{ScreenCoords, ToVertices};
+use super::vertex::{ScreenCoord, ToVertices};
 
 const SCREEN_WIDTH: u32 = 30; // Blocks
 const SCREEN_HEIGHT: u32 = 30; // Blocks
@@ -121,7 +121,7 @@ impl<'a> Scene {
         tetris.base.queue.submit(Some(encoder.finish()));
     }
 
-    fn game_area(&self) -> (Vec<ScreenCoords>, Vec<u16>) {
+    fn game_area(&self) -> (Vec<ScreenCoord>, Vec<u16>) {
         let (left, top, right, bottom) = {
             (
                 self.block_size * LEFT_MARGIN,

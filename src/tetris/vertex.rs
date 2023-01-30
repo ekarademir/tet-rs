@@ -33,21 +33,21 @@ impl From<[f32; 4]> for Vertex {
 }
 
 #[derive(Debug)]
-pub struct ScreenCoords {
+pub struct ScreenCoord {
     x: u32,
     y: u32,
 }
 
-impl From<[u32; 2]> for ScreenCoords {
+impl From<[u32; 2]> for ScreenCoord {
     fn from(value: [u32; 2]) -> Self {
-        ScreenCoords {
+        ScreenCoord {
             x: value[0],
             y: value[1],
         }
     }
 }
 
-impl ScreenCoords {
+impl ScreenCoord {
     pub fn to_vertex(&self, scene_size: &Frame, window_size: &Frame) -> Vertex {
         let (left_margin, bottom_margin) = {
             (
@@ -71,7 +71,7 @@ pub trait ToVertices {
     fn to_vertices(&self, scene_size: &Frame, window_size: &Frame) -> Vec<Vertex>;
 }
 
-impl ToVertices for Vec<ScreenCoords> {
+impl ToVertices for Vec<ScreenCoord> {
     fn to_vertices(&self, scene_size: &Frame, window_size: &Frame) -> Vec<Vertex> {
         self.into_iter()
             .map(|x| x.to_vertex(&scene_size, &window_size))
