@@ -58,3 +58,12 @@ impl std::ops::Add for Geometry {
         Geometry { vertices, indices }
     }
 }
+impl std::ops::AddAssign for Geometry {
+    fn add_assign(&mut self, rhs: Self) {
+        self.vertices.extend_from_slice(&rhs.vertices);
+
+        let offset = self.indices.len() as u16;
+        self.indices
+            .extend(rhs.indices.into_iter().map(|x| x + offset));
+    }
+}

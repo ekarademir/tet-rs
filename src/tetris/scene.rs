@@ -138,6 +138,10 @@ impl<'a> Scene {
         Geometry { indices, vertices }
     }
 
+    fn blocks(&self, tetris: &super::Tetris) -> Geometry {
+        todo!()
+    }
+
     fn build_game_area_pipeline(base: &'a super::Base) -> wgpu::RenderPipeline {
         let shader = base
             .device
