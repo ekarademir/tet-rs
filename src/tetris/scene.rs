@@ -135,11 +135,7 @@ impl<'a> Scene {
 
         let vertices = coords.to_vertices(&self.scene_size, &self.screen_size, colour);
 
-        Geometry {
-            colour,
-            indices,
-            vertices,
-        }
+        Geometry { indices, vertices }
     }
 
     fn build_game_area_pipeline(base: &'a super::Base) -> wgpu::RenderPipeline {

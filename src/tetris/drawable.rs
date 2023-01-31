@@ -9,7 +9,6 @@ pub struct Drawable {
 
 #[derive(Debug)]
 pub struct Geometry {
-    pub colour: super::colours::Colour,
     pub indices: Vec<u16>,
     pub vertices: Vec<super::Vertex>,
 }
@@ -56,10 +55,6 @@ impl std::ops::Add for Geometry {
         ]
         .concat();
 
-        Geometry {
-            vertices,
-            indices,
-            colour: rhs.colour,
-        }
+        Geometry { vertices, indices }
     }
 }
