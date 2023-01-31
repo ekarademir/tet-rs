@@ -13,6 +13,15 @@ pub struct Geometry {
     pub vertices: Vec<super::Vertex>,
 }
 
+impl Default for Geometry {
+    fn default() -> Self {
+        Geometry {
+            indices: Vec::new(),
+            vertices: Vec::new(),
+        }
+    }
+}
+
 impl Geometry {
     pub fn to_drawable(&self, tetris: &super::Tetris) -> Drawable {
         let vertex_buffer =
@@ -46,9 +55,10 @@ impl Geometry {
 impl std::ops::Add for Geometry {
     type Output = Self;
     fn add(self, rhs: Self) -> Self::Output {
+        let offset = self.vertices.len() as u16;
+
         let vertices = [self.vertices, rhs.vertices].concat();
 
-        let offset = self.indices.len() as u16;
         let indices = [
             self.indices,
             rhs.indices.into_iter().map(|x| x + offset).collect(),
@@ -60,9 +70,10 @@ impl std::ops::Add for Geometry {
 }
 impl std::ops::AddAssign for Geometry {
     fn add_assign(&mut self, rhs: Self) {
+        let offset = self.vertices.len() as u16;
+
         self.vertices.extend_from_slice(&rhs.vertices);
 
-        let offset = self.indices.len() as u16;
         self.indices
             .extend(rhs.indices.into_iter().map(|x| x + offset));
     }

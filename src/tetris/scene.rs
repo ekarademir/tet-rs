@@ -106,9 +106,11 @@ impl<'a> Scene {
             });
 
             rpass.set_pipeline(&self.game_area_pipeline);
+
             rpass.set_index_buffer(outer_rect.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
             rpass.set_vertex_buffer(0, outer_rect.vertex_buffer.slice(..));
             rpass.draw_indexed(0..outer_rect.index_buffer_len, 0, 0..1);
+
             rpass.set_index_buffer(inner_rect.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
             rpass.set_vertex_buffer(0, inner_rect.vertex_buffer.slice(..));
             rpass.draw_indexed(0..inner_rect.index_buffer_len, 0, 0..1);
@@ -139,7 +141,36 @@ impl<'a> Scene {
     }
 
     fn blocks(&self, tetris: &super::Tetris) -> Geometry {
-        todo!()
+        let bs = self.block_size;
+        let m: u32 = 1;
+
+        let (ga_left, ga_top) = {
+            (
+                self.block_size * LEFT_MARGIN,
+                self.block_size * (BOTTOM_MARGIN + GAME_AREA_HEIGHT),
+            )
+        };
+
+        let mut blx = Geometry::default();
+
+        let mut offsy = ga_top;
+        for row in tetris.game_state.blocks {
+            let mut offsx = ga_left;
+            for col in row {
+                let (b_left, b_top, b_right, b_bottom) =
+                    { (offsx + m, offsy + m, offsx + bs - m, offsy + bs - m) };
+
+                if col == super::game_state::BlockState::Filled {
+                    let g = self.rectangle(b_left, b_top, b_right, b_bottom, colours::ORANGE);
+                    blx += g;
+                }
+
+                offsx += bs;
+            }
+            offsy -= bs;
+        }
+
+        blx
     }
 
     fn build_game_area_pipeline(base: &'a super::Base) -> wgpu::RenderPipeline {
