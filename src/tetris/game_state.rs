@@ -14,7 +14,7 @@ pub struct GameState {
 impl std::default::Default for GameState {
     fn default() -> Self {
         GameState {
-            blocks: [[BlockState::Empty; NUM_COLS]; NUM_ROWS],
+            blocks: [[BlockState::Filled; NUM_COLS]; NUM_ROWS],
         }
     }
 }

@@ -6,6 +6,20 @@ pub struct Colour {
     alpha: u8,
 }
 
+pub const BLACK: Colour = Colour {
+    red: 0,
+    green: 0,
+    blue: 0,
+    alpha: 255,
+};
+
+pub const WHITE: Colour = Colour {
+    red: 255,
+    green: 255,
+    blue: 255,
+    alpha: 255,
+};
+
 pub const ORANGE: Colour = Colour {
     red: 252,
     green: 115,

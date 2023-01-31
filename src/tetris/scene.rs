@@ -67,14 +67,30 @@ impl<'a> Scene {
     }
 
     pub fn render_game_area(&self, tetris: &super::Tetris, view: &wgpu::TextureView) {
-        let (game_area_vertex_buffer, game_area_index_buffer, game_area_index_buffer_len) = {
-            let game_area = self.game_area();
+        let (
+            outer_game_area_vertex_buffer,
+            outer_game_area_index_buffer,
+            outer_game_area_index_buffer_len,
+            inner_game_area_vertex_buffer,
+            inner_game_area_index_buffer,
+            inner_game_area_index_buffer_len,
+        ) = {
+            let outer_game_area = self.outer_game_area();
 
-            let vertices =
-                game_area
+            let outer_vertices = outer_game_area.0.to_vertices(
+                &self.scene_size,
+                &self.screen_size,
+                colours::DARK_GREEN,
+            );
+            let outer_indices = outer_game_area.1;
+
+            let inner_game_area = self.inner_game_area();
+
+            let inner_vertices =
+                inner_game_area
                     .0
-                    .to_vertices(&self.scene_size, &self.screen_size, colours::DARK_GREEN);
-            let indices = game_area.1;
+                    .to_vertices(&self.scene_size, &self.screen_size, colours::BLACK);
+            let inner_indices = inner_game_area.1;
 
             (
                 tetris
@@ -82,7 +98,7 @@ impl<'a> Scene {
                     .device
                     .create_buffer_init(&wgpu::util::BufferInitDescriptor {
                         label: None,
-                        contents: bytemuck::cast_slice(&vertices),
+                        contents: bytemuck::cast_slice(&outer_vertices),
                         usage: wgpu::BufferUsages::VERTEX,
                     }),
                 tetris
@@ -90,10 +106,27 @@ impl<'a> Scene {
                     .device
                     .create_buffer_init(&wgpu::util::BufferInitDescriptor {
                         label: None,
-                        contents: bytemuck::cast_slice(&indices),
+                        contents: bytemuck::cast_slice(&outer_indices),
                         usage: wgpu::BufferUsages::INDEX,
                     }),
-                indices.len() as u32,
+                outer_indices.len() as u32,
+                tetris
+                    .base
+                    .device
+                    .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                        label: None,
+                        contents: bytemuck::cast_slice(&inner_vertices),
+                        usage: wgpu::BufferUsages::VERTEX,
+                    }),
+                tetris
+                    .base
+                    .device
+                    .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                        label: None,
+                        contents: bytemuck::cast_slice(&inner_indices),
+                        usage: wgpu::BufferUsages::INDEX,
+                    }),
+                inner_indices.len() as u32,
             )
         };
 
@@ -118,14 +151,23 @@ impl<'a> Scene {
             });
 
             rpass.set_pipeline(&self.game_area_pipeline);
-            rpass.set_index_buffer(game_area_index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-            rpass.set_vertex_buffer(0, game_area_vertex_buffer.slice(..));
-            rpass.draw_indexed(0..game_area_index_buffer_len, 0, 0..1);
+            rpass.set_index_buffer(
+                outer_game_area_index_buffer.slice(..),
+                wgpu::IndexFormat::Uint16,
+            );
+            rpass.set_vertex_buffer(0, outer_game_area_vertex_buffer.slice(..));
+            rpass.draw_indexed(0..outer_game_area_index_buffer_len, 0, 0..1);
+            rpass.set_index_buffer(
+                inner_game_area_index_buffer.slice(..),
+                wgpu::IndexFormat::Uint16,
+            );
+            rpass.set_vertex_buffer(0, inner_game_area_vertex_buffer.slice(..));
+            rpass.draw_indexed(0..inner_game_area_index_buffer_len, 0, 0..1);
         }
         tetris.base.queue.submit(Some(encoder.finish()));
     }
 
-    fn game_area(&self) -> (Vec<ScreenCoord>, Vec<u16>) {
+    fn outer_game_area(&self) -> (Vec<ScreenCoord>, Vec<u16>) {
         let (left, top, right, bottom) = {
             (
                 self.block_size * LEFT_MARGIN,
@@ -144,33 +186,32 @@ impl<'a> Scene {
         };
         (
             vec![
-                // Left bar
                 [outer_left, outer_bottom].into(),
-                [left, outer_bottom].into(),
-                [left, outer_top].into(),
-                [outer_left, outer_top].into(),
-                // Top bar
-                [left, top].into(),
-                [right, top].into(),
-                [right, outer_top].into(),
-                [left, outer_top].into(),
-                // Right bar
-                [right, outer_bottom].into(),
                 [outer_right, outer_bottom].into(),
                 [outer_right, outer_top].into(),
-                [right, outer_top].into(),
-                // Bottom bar
-                [outer_left, outer_bottom].into(),
-                [outer_right, outer_bottom].into(),
-                [outer_right, bottom].into(),
-                [outer_left, bottom].into(),
+                [outer_left, outer_top].into(),
             ],
+            vec![0, 1, 2, 2, 3, 0],
+        )
+    }
+
+    fn inner_game_area(&self) -> (Vec<ScreenCoord>, Vec<u16>) {
+        let (left, top, right, bottom) = {
+            (
+                self.block_size * LEFT_MARGIN,
+                self.block_size * (BOTTOM_MARGIN + GAME_AREA_HEIGHT),
+                self.block_size * (LEFT_MARGIN + GAME_AREA_WIDTH),
+                self.block_size * BOTTOM_MARGIN,
+            )
+        };
+        (
             vec![
-                0, 1, 2, 2, 3, 0, // Left bar
-                4, 5, 6, 6, 7, 4, // Top bar
-                8, 9, 10, 10, 11, 8, // Right bar
-                12, 13, 14, 14, 15, 12, // Bottom bar
+                [left, bottom].into(),
+                [right, bottom].into(),
+                [right, top].into(),
+                [left, top].into(),
             ],
+            vec![0, 1, 2, 2, 3, 0],
         )
     }
 
