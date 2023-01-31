@@ -15,7 +15,7 @@ const BOTTOM_MARGIN: u32 = 1; // Blocks
 pub type Frame = winit::dpi::PhysicalSize<u32>;
 
 pub struct Scene {
-    pub screen_size: Frame,
+    pub window_size: Frame,
     pub scene_size: Frame,
     pub block_size: u32,
     pub line_weight: u32,
@@ -24,13 +24,13 @@ pub struct Scene {
 
 impl<'a> Scene {
     pub fn new(base: &'a super::Base) -> Self {
-        let screen_size = base.window_size.clone();
+        let window_size = base.window_size.clone();
 
-        let block_size: u32 = Scene::calculate_block_size(&screen_size);
+        let block_size: u32 = Scene::calculate_block_size(&window_size);
 
         Scene {
             game_area_pipeline: Scene::build_game_area_pipeline(&base),
-            screen_size,
+            window_size,
             scene_size: Frame::new(SCREEN_HEIGHT * block_size, SCREEN_WIDTH * block_size),
             block_size,
             line_weight: 3,
@@ -43,17 +43,17 @@ impl<'a> Scene {
             SCREEN_HEIGHT * self.block_size,
             SCREEN_WIDTH * self.block_size,
         );
-        self.screen_size = new_size.clone();
+        self.window_size = new_size.clone();
     }
 
-    fn calculate_block_size(screen_size: &Frame) -> u32 {
+    fn calculate_block_size(window_size: &Frame) -> u32 {
         let block_size: u32 = cmp::min(
-            screen_size.height / SCREEN_HEIGHT,
-            screen_size.width / SCREEN_WIDTH,
+            window_size.height / SCREEN_HEIGHT,
+            window_size.width / SCREEN_WIDTH,
         );
 
-        if block_size * SCREEN_WIDTH > screen_size.width
-            || block_size * SCREEN_HEIGHT > screen_size.height
+        if block_size * SCREEN_WIDTH > window_size.width
+            || block_size * SCREEN_HEIGHT > window_size.height
         {
             if block_size > 5 {
                 block_size - 5
@@ -133,7 +133,7 @@ impl<'a> Scene {
 
         let indices: Vec<u16> = vec![0, 1, 2, 2, 3, 0];
 
-        let vertices = coords.to_vertices(&self.scene_size, &self.screen_size, colour);
+        let vertices = coords.to_vertices(&self.scene_size, &self.window_size, colour);
 
         Geometry { indices, vertices }
     }
