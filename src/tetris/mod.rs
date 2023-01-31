@@ -1,5 +1,6 @@
 mod base;
 mod colours;
+mod drawable;
 mod game_state;
 mod scene;
 mod vertex;

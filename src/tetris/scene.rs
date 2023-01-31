@@ -3,6 +3,7 @@ use std::{borrow::Cow, cmp};
 use wgpu::util::DeviceExt;
 
 use super::colours;
+use super::drawable::{Drawable, Rectangle};
 use super::vertex::{ScreenCoord, ToVertices};
 
 const SCREEN_WIDTH: u32 = 30; // Blocks
@@ -67,68 +68,22 @@ impl<'a> Scene {
     }
 
     pub fn render_game_area(&self, tetris: &super::Tetris, view: &wgpu::TextureView) {
-        let (
-            outer_game_area_vertex_buffer,
-            outer_game_area_index_buffer,
-            outer_game_area_index_buffer_len,
-            inner_game_area_vertex_buffer,
-            inner_game_area_index_buffer,
-            inner_game_area_index_buffer_len,
-        ) = {
-            let outer_game_area = self.outer_game_area();
-
-            let outer_vertices = outer_game_area.0.to_vertices(
-                &self.scene_size,
-                &self.screen_size,
-                colours::DARK_GREEN,
-            );
-            let outer_indices = outer_game_area.1;
-
-            let inner_game_area = self.inner_game_area();
-
-            let inner_vertices =
-                inner_game_area
-                    .0
-                    .to_vertices(&self.scene_size, &self.screen_size, colours::BLACK);
-            let inner_indices = inner_game_area.1;
-
-            (
-                tetris
-                    .base
-                    .device
-                    .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                        label: None,
-                        contents: bytemuck::cast_slice(&outer_vertices),
-                        usage: wgpu::BufferUsages::VERTEX,
-                    }),
-                tetris
-                    .base
-                    .device
-                    .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                        label: None,
-                        contents: bytemuck::cast_slice(&outer_indices),
-                        usage: wgpu::BufferUsages::INDEX,
-                    }),
-                outer_indices.len() as u32,
-                tetris
-                    .base
-                    .device
-                    .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                        label: None,
-                        contents: bytemuck::cast_slice(&inner_vertices),
-                        usage: wgpu::BufferUsages::VERTEX,
-                    }),
-                tetris
-                    .base
-                    .device
-                    .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                        label: None,
-                        contents: bytemuck::cast_slice(&inner_indices),
-                        usage: wgpu::BufferUsages::INDEX,
-                    }),
-                inner_indices.len() as u32,
-            )
-        };
+        let outer_rect = self.rectangle(
+            tetris,
+            self.block_size * LEFT_MARGIN - self.line_weight,
+            self.block_size * (BOTTOM_MARGIN + GAME_AREA_HEIGHT) + self.line_weight,
+            self.block_size * (LEFT_MARGIN + GAME_AREA_WIDTH) + self.line_weight,
+            self.block_size * BOTTOM_MARGIN - self.line_weight,
+            colours::DARK_GREEN,
+        );
+        let inner_rect = self.rectangle(
+            tetris,
+            self.block_size * LEFT_MARGIN,
+            self.block_size * (BOTTOM_MARGIN + GAME_AREA_HEIGHT),
+            self.block_size * (LEFT_MARGIN + GAME_AREA_WIDTH),
+            self.block_size * BOTTOM_MARGIN,
+            colours::BLACK,
+        );
 
         let mut encoder = tetris
             .base
@@ -151,68 +106,61 @@ impl<'a> Scene {
             });
 
             rpass.set_pipeline(&self.game_area_pipeline);
-            rpass.set_index_buffer(
-                outer_game_area_index_buffer.slice(..),
-                wgpu::IndexFormat::Uint16,
-            );
-            rpass.set_vertex_buffer(0, outer_game_area_vertex_buffer.slice(..));
-            rpass.draw_indexed(0..outer_game_area_index_buffer_len, 0, 0..1);
-            rpass.set_index_buffer(
-                inner_game_area_index_buffer.slice(..),
-                wgpu::IndexFormat::Uint16,
-            );
-            rpass.set_vertex_buffer(0, inner_game_area_vertex_buffer.slice(..));
-            rpass.draw_indexed(0..inner_game_area_index_buffer_len, 0, 0..1);
+            rpass.set_index_buffer(outer_rect.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+            rpass.set_vertex_buffer(0, outer_rect.vertex_buffer.slice(..));
+            rpass.draw_indexed(0..outer_rect.index_buffer_len, 0, 0..1);
+            rpass.set_index_buffer(inner_rect.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+            rpass.set_vertex_buffer(0, inner_rect.vertex_buffer.slice(..));
+            rpass.draw_indexed(0..inner_rect.index_buffer_len, 0, 0..1);
         }
         tetris.base.queue.submit(Some(encoder.finish()));
     }
 
-    fn outer_game_area(&self) -> (Vec<ScreenCoord>, Vec<u16>) {
-        let (left, top, right, bottom) = {
-            (
-                self.block_size * LEFT_MARGIN,
-                self.block_size * (BOTTOM_MARGIN + GAME_AREA_HEIGHT),
-                self.block_size * (LEFT_MARGIN + GAME_AREA_WIDTH),
-                self.block_size * BOTTOM_MARGIN,
-            )
-        };
-        let (outer_left, outer_top, outer_right, outer_bottom) = {
-            (
-                left - self.line_weight,
-                top + self.line_weight,
-                right + self.line_weight,
-                bottom - self.line_weight,
-            )
-        };
-        (
-            vec![
-                [outer_left, outer_bottom].into(),
-                [outer_right, outer_bottom].into(),
-                [outer_right, outer_top].into(),
-                [outer_left, outer_top].into(),
-            ],
-            vec![0, 1, 2, 2, 3, 0],
-        )
-    }
+    fn rectangle(
+        &self,
+        tetris: &super::Tetris,
+        left: u32,
+        top: u32,
+        right: u32,
+        bottom: u32,
+        colour: colours::Colour,
+    ) -> Drawable {
+        let coords: Vec<ScreenCoord> = vec![
+            [left, bottom].into(),
+            [right, bottom].into(),
+            [right, top].into(),
+            [left, top].into(),
+        ];
 
-    fn inner_game_area(&self) -> (Vec<ScreenCoord>, Vec<u16>) {
-        let (left, top, right, bottom) = {
-            (
-                self.block_size * LEFT_MARGIN,
-                self.block_size * (BOTTOM_MARGIN + GAME_AREA_HEIGHT),
-                self.block_size * (LEFT_MARGIN + GAME_AREA_WIDTH),
-                self.block_size * BOTTOM_MARGIN,
-            )
-        };
-        (
-            vec![
-                [left, bottom].into(),
-                [right, bottom].into(),
-                [right, top].into(),
-                [left, top].into(),
-            ],
-            vec![0, 1, 2, 2, 3, 0],
-        )
+        let indices: Vec<u16> = vec![0, 1, 2, 2, 3, 0];
+
+        let vertices = coords.to_vertices(&self.scene_size, &self.screen_size, colour);
+
+        let vertex_buffer =
+            tetris
+                .base
+                .device
+                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                    label: None,
+                    contents: bytemuck::cast_slice(&vertices),
+                    usage: wgpu::BufferUsages::VERTEX,
+                });
+        let index_buffer =
+            tetris
+                .base
+                .device
+                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                    label: None,
+                    contents: bytemuck::cast_slice(&indices),
+                    usage: wgpu::BufferUsages::INDEX,
+                });
+        let index_buffer_len = indices.len() as u32;
+
+        Drawable {
+            vertex_buffer,
+            index_buffer,
+            index_buffer_len,
+        }
     }
 
     fn build_game_area_pipeline(base: &'a super::Base) -> wgpu::RenderPipeline {
