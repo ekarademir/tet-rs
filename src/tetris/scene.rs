@@ -85,6 +85,8 @@ impl<'a> Scene {
             )
             .to_drawable(tetris);
 
+        let blx = self.blocks(tetris).to_drawable(tetris);
+
         let mut encoder = tetris
             .base
             .device
@@ -114,6 +116,10 @@ impl<'a> Scene {
             rpass.set_index_buffer(inner_rect.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
             rpass.set_vertex_buffer(0, inner_rect.vertex_buffer.slice(..));
             rpass.draw_indexed(0..inner_rect.index_buffer_len, 0, 0..1);
+
+            rpass.set_index_buffer(blx.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+            rpass.set_vertex_buffer(0, blx.vertex_buffer.slice(..));
+            rpass.draw_indexed(0..blx.index_buffer_len, 0, 0..1);
         }
         tetris.base.queue.submit(Some(encoder.finish()));
     }
@@ -153,7 +159,7 @@ impl<'a> Scene {
 
         let mut blx = Geometry::default();
 
-        let mut offsy = ga_top;
+        let mut offsy = ga_top - bs;
         for row in tetris.game_state.blocks {
             let mut offsx = ga_left;
             for col in row {
