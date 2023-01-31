@@ -3,7 +3,7 @@ use std::{borrow::Cow, cmp};
 use wgpu::util::DeviceExt;
 
 use super::colours;
-use super::drawable::{Drawable, Rectangle};
+use super::drawable::{Drawable, Geometry};
 use super::vertex::{ScreenCoord, ToVertices};
 
 const SCREEN_WIDTH: u32 = 30; // Blocks
@@ -68,22 +68,24 @@ impl<'a> Scene {
     }
 
     pub fn render_game_area(&self, tetris: &super::Tetris, view: &wgpu::TextureView) {
-        let outer_rect = self.rectangle(
-            tetris,
-            self.block_size * LEFT_MARGIN - self.line_weight,
-            self.block_size * (BOTTOM_MARGIN + GAME_AREA_HEIGHT) + self.line_weight,
-            self.block_size * (LEFT_MARGIN + GAME_AREA_WIDTH) + self.line_weight,
-            self.block_size * BOTTOM_MARGIN - self.line_weight,
-            colours::DARK_GREEN,
-        );
-        let inner_rect = self.rectangle(
-            tetris,
-            self.block_size * LEFT_MARGIN,
-            self.block_size * (BOTTOM_MARGIN + GAME_AREA_HEIGHT),
-            self.block_size * (LEFT_MARGIN + GAME_AREA_WIDTH),
-            self.block_size * BOTTOM_MARGIN,
-            colours::BLACK,
-        );
+        let outer_rect = self
+            .rectangle(
+                self.block_size * LEFT_MARGIN - self.line_weight,
+                self.block_size * (BOTTOM_MARGIN + GAME_AREA_HEIGHT) + self.line_weight,
+                self.block_size * (LEFT_MARGIN + GAME_AREA_WIDTH) + self.line_weight,
+                self.block_size * BOTTOM_MARGIN - self.line_weight,
+                colours::DARK_GREEN,
+            )
+            .to_drawable(tetris);
+        let inner_rect = self
+            .rectangle(
+                self.block_size * LEFT_MARGIN,
+                self.block_size * (BOTTOM_MARGIN + GAME_AREA_HEIGHT),
+                self.block_size * (LEFT_MARGIN + GAME_AREA_WIDTH),
+                self.block_size * BOTTOM_MARGIN,
+                colours::BLACK,
+            )
+            .to_drawable(tetris);
 
         let mut encoder = tetris
             .base
@@ -118,13 +120,12 @@ impl<'a> Scene {
 
     fn rectangle(
         &self,
-        tetris: &super::Tetris,
         left: u32,
         top: u32,
         right: u32,
         bottom: u32,
         colour: colours::Colour,
-    ) -> Drawable {
+    ) -> Geometry {
         let coords: Vec<ScreenCoord> = vec![
             [left, bottom].into(),
             [right, bottom].into(),
@@ -136,30 +137,10 @@ impl<'a> Scene {
 
         let vertices = coords.to_vertices(&self.scene_size, &self.screen_size, colour);
 
-        let vertex_buffer =
-            tetris
-                .base
-                .device
-                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                    label: None,
-                    contents: bytemuck::cast_slice(&vertices),
-                    usage: wgpu::BufferUsages::VERTEX,
-                });
-        let index_buffer =
-            tetris
-                .base
-                .device
-                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                    label: None,
-                    contents: bytemuck::cast_slice(&indices),
-                    usage: wgpu::BufferUsages::INDEX,
-                });
-        let index_buffer_len = indices.len() as u32;
-
-        Drawable {
-            vertex_buffer,
-            index_buffer,
-            index_buffer_len,
+        Geometry {
+            colour,
+            indices,
+            vertices,
         }
     }
 
