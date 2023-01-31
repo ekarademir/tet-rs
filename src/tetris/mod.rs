@@ -52,7 +52,7 @@ impl Tetris {
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
 
-        self.scene.render_game_area(&self, &view);
+        self.scene.render_game(&self, &view);
 
         frame.present();
     }

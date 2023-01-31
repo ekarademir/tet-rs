@@ -65,7 +65,7 @@ impl<'a> Scene {
         }
     }
 
-    pub fn render_game_area(&self, tetris: &super::Tetris, view: &wgpu::TextureView) {
+    pub fn render_game(&self, tetris: &super::Tetris, view: &wgpu::TextureView) {
         let outer_rect = self
             .rectangle(
                 self.block_size * LEFT_MARGIN - self.line_weight,
