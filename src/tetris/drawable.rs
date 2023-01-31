@@ -47,6 +47,19 @@ impl Geometry {
 impl std::ops::Add for Geometry {
     type Output = Self;
     fn add(self, rhs: Self) -> Self::Output {
-        todo!()
+        let vertices = [self.vertices, rhs.vertices].concat();
+
+        let offset = self.indices.len() as u16;
+        let indices = [
+            self.indices,
+            rhs.indices.into_iter().map(|x| x + offset).collect(),
+        ]
+        .concat();
+
+        Geometry {
+            vertices,
+            indices,
+            colour: rhs.colour,
+        }
     }
 }

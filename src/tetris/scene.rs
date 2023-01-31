@@ -1,9 +1,7 @@
 use std::{borrow::Cow, cmp};
 
-use wgpu::util::DeviceExt;
-
 use super::colours;
-use super::drawable::{Drawable, Geometry};
+use super::drawable::Geometry;
 use super::vertex::{ScreenCoord, ToVertices};
 
 const SCREEN_WIDTH: u32 = 30; // Blocks
