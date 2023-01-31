@@ -43,3 +43,10 @@ impl Geometry {
         }
     }
 }
+
+impl std::ops::Add for Geometry {
+    type Output = Self;
+    fn add(self, rhs: Self) -> Self::Output {
+        todo!()
+    }
+}
