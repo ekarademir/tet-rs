@@ -9,7 +9,9 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.68"
 bytemuck = {version = "1.13.0", features = ["derive"]}
+font = "0.10.8"
 log = "0.4.17"
+lyon = "1.0.1"
 pollster = "0.2.5"
 simple_logger = "4.0.0"
 wgpu = "0.14.2"
