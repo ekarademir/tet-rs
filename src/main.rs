@@ -8,9 +8,6 @@ fn main() -> anyhow::Result<()> {
         .init()
         .context("Couldn't initialise the logger")?;
 
-    // let t = tetrs::text::Text::new();
-    // log::debug!("{:?}", t);
-
     pollster::block_on(execute())?;
 
     Ok(())
