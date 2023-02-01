@@ -17,21 +17,21 @@ use game_state::GameState;
 use scene::{Frame, Scene};
 use vertex::Vertex;
 
-pub struct Tetris {
+pub struct Tetrs {
     base: Base,
     game_state: GameState,
     scene: Scene,
 }
 
-impl Tetris {
-    pub async fn new(window: &winit::window::Window) -> anyhow::Result<Tetris> {
+impl Tetrs {
+    pub async fn new(window: &winit::window::Window) -> anyhow::Result<Tetrs> {
         let base = Base::new(window)
             .await
             .context("Couldn't initialize base")?;
         let game_state = GameState::default();
         let scene = Scene::new(&base);
 
-        Ok(Tetris {
+        Ok(Tetrs {
             base,
             game_state,
             scene,
@@ -69,7 +69,7 @@ impl Tetris {
 pub async fn run(
     window: winit::window::Window,
     event_loop: winit::event_loop::EventLoop<()>,
-    mut tetris: Tetris,
+    mut tetris: Tetrs,
 ) {
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Wait;

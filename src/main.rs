@@ -20,11 +20,11 @@ async fn execute() -> anyhow::Result<()> {
     let event_loop = winit::event_loop::EventLoop::new();
     let window = winit::window::WindowBuilder::new()
         .with_min_inner_size(winit::dpi::LogicalSize::new(600, 600))
-        .with_title("Tetris")
+        .with_title("Tetrs")
         .build(&event_loop)
         .context("Couldn't initialise the window")?;
 
-    let tetris = tetris::Tetris::new(&window)
+    let tetris = tetris::Tetrs::new(&window)
         .await
         .context("Can't create tetris")?;
 

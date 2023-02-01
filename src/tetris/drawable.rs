@@ -23,7 +23,7 @@ impl Default for Geometry {
 }
 
 impl Geometry {
-    pub fn to_drawable(&self, tetris: &super::Tetris) -> Drawable {
+    pub fn to_drawable(&self, tetris: &super::Tetrs) -> Drawable {
         let vertex_buffer =
             tetris
                 .base
