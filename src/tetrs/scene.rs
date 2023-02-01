@@ -85,8 +85,6 @@ impl<'a> Scene {
             )
             .to_drawable(tetrs);
 
-        let blx = self.blocks(tetrs).to_drawable(tetrs);
-
         let mut encoder = tetrs
             .base
             .device
@@ -116,6 +114,34 @@ impl<'a> Scene {
             rpass.set_index_buffer(inner_rect.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
             rpass.set_vertex_buffer(0, inner_rect.vertex_buffer.slice(..));
             rpass.draw_indexed(0..inner_rect.index_buffer_len, 0, 0..1);
+        }
+        tetrs.base.queue.submit(Some(encoder.finish()));
+    }
+
+    pub fn render_blocks(&self, tetrs: &super::Tetrs, view: &wgpu::TextureView) {
+        let blx = self.blocks(tetrs).to_drawable(tetrs);
+
+        let mut encoder = tetrs
+            .base
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+
+        // Render pass
+        {
+            let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: None,
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &view,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Load,
+                        store: true,
+                    },
+                })],
+                depth_stencil_attachment: None,
+            });
+
+            rpass.set_pipeline(&self.game_area_pipeline);
 
             rpass.set_index_buffer(blx.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
             rpass.set_vertex_buffer(0, blx.vertex_buffer.slice(..));

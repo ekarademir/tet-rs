@@ -54,6 +54,7 @@ impl Tetrs {
             .create_view(&wgpu::TextureViewDescriptor::default());
 
         self.scene.render_game(&self, &view);
+        self.scene.render_blocks(&self, &view);
 
         frame.present();
     }
