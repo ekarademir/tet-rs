@@ -3,6 +3,7 @@ mod colours;
 mod drawable;
 mod game_state;
 mod scene;
+pub mod text;
 mod vertex;
 
 use anyhow::Context;
