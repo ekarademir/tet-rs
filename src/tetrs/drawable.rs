@@ -23,9 +23,9 @@ impl Default for Geometry {
 }
 
 impl Geometry {
-    pub fn to_drawable(&self, tetris: &super::Tetrs) -> Drawable {
+    pub fn to_drawable(&self, tetrs: &super::Tetrs) -> Drawable {
         let vertex_buffer =
-            tetris
+            tetrs
                 .base
                 .device
                 .create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -34,7 +34,7 @@ impl Geometry {
                     usage: wgpu::BufferUsages::VERTEX,
                 });
         let index_buffer =
-            tetris
+            tetrs
                 .base
                 .device
                 .create_buffer_init(&wgpu::util::BufferInitDescriptor {

@@ -65,7 +65,7 @@ impl<'a> Scene {
         }
     }
 
-    pub fn render_game(&self, tetris: &super::Tetrs, view: &wgpu::TextureView) {
+    pub fn render_game(&self, tetrs: &super::Tetrs, view: &wgpu::TextureView) {
         let outer_rect = self
             .rectangle(
                 self.block_size * LEFT_MARGIN - self.line_weight,
@@ -74,7 +74,7 @@ impl<'a> Scene {
                 self.block_size * BOTTOM_MARGIN - self.line_weight,
                 colours::DARK_GREEN,
             )
-            .to_drawable(tetris);
+            .to_drawable(tetrs);
         let inner_rect = self
             .rectangle(
                 self.block_size * LEFT_MARGIN,
@@ -83,11 +83,11 @@ impl<'a> Scene {
                 self.block_size * BOTTOM_MARGIN,
                 colours::BLACK,
             )
-            .to_drawable(tetris);
+            .to_drawable(tetrs);
 
-        let blx = self.blocks(tetris).to_drawable(tetris);
+        let blx = self.blocks(tetrs).to_drawable(tetrs);
 
-        let mut encoder = tetris
+        let mut encoder = tetrs
             .base
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
@@ -121,7 +121,7 @@ impl<'a> Scene {
             rpass.set_vertex_buffer(0, blx.vertex_buffer.slice(..));
             rpass.draw_indexed(0..blx.index_buffer_len, 0, 0..1);
         }
-        tetris.base.queue.submit(Some(encoder.finish()));
+        tetrs.base.queue.submit(Some(encoder.finish()));
     }
 
     fn rectangle(
@@ -146,7 +146,7 @@ impl<'a> Scene {
         Geometry { indices, vertices }
     }
 
-    fn blocks(&self, tetris: &super::Tetrs) -> Geometry {
+    fn blocks(&self, tetrs: &super::Tetrs) -> Geometry {
         let bs = self.block_size;
         let m: u32 = 1;
 
@@ -160,7 +160,7 @@ impl<'a> Scene {
         let mut blx = Geometry::default();
 
         let mut offsy = ga_top - bs;
-        for row in tetris.game_state.blocks {
+        for row in tetrs.game_state.blocks {
             let mut offsx = ga_left;
             for col in row {
                 let (b_left, b_top, b_right, b_bottom) =

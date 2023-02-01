@@ -1341,7 +1341,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "tetris"
+name = "tet-rs"
 version = "0.1.0"
 dependencies = [
  "anyhow",

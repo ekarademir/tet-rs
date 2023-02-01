@@ -69,7 +69,7 @@ impl Tetrs {
 pub async fn run(
     window: winit::window::Window,
     event_loop: winit::event_loop::EventLoop<()>,
-    mut tetris: Tetrs,
+    mut tetrs: Tetrs,
 ) {
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Wait;
@@ -79,11 +79,11 @@ pub async fn run(
                 event: WindowEvent::Resized(size),
                 ..
             } => {
-                tetris.resize(size);
+                tetrs.resize(size);
                 window.request_redraw();
             }
             Event::RedrawRequested(_) => {
-                tetris.render_all();
+                tetrs.render_all();
             }
             Event::WindowEvent {
                 event: WindowEvent::CloseRequested,

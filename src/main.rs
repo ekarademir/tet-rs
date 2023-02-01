@@ -1,4 +1,4 @@
-mod tetris;
+mod tetrs;
 
 use anyhow::Context;
 
@@ -8,7 +8,7 @@ fn main() -> anyhow::Result<()> {
         .init()
         .context("Couldn't initialise the logger")?;
 
-    // let t = tetris::text::Text::new();
+    // let t = tetrs::text::Text::new();
     // log::debug!("{:?}", t);
 
     pollster::block_on(execute())?;
@@ -24,9 +24,9 @@ async fn execute() -> anyhow::Result<()> {
         .build(&event_loop)
         .context("Couldn't initialise the window")?;
 
-    let tetris = tetris::Tetrs::new(&window)
+    let tetrs = tetrs::Tetrs::new(&window)
         .await
-        .context("Can't create tetris")?;
+        .context("Can't create tetrs")?;
 
-    Ok(tetris::run(window, event_loop, tetris).await)
+    Ok(tetrs::run(window, event_loop, tetrs).await)
 }
