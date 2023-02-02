@@ -1,5 +1,5 @@
 mod base;
-mod colours;
+pub mod colours;
 mod drawable;
 mod game_state;
 mod scene;
