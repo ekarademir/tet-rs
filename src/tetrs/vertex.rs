@@ -46,6 +46,15 @@ impl From<[f32; 8]> for Vertex {
     }
 }
 
+impl From<([f32; 2], super::colours::Colour)> for Vertex {
+    fn from(value: ([f32; 2], super::colours::Colour)) -> Self {
+        Vertex {
+            _pos: [value.0[0], value.0[1], 0.0, 1.0],
+            _colour: value.1.into(),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct ScreenCoord {
     x: u32,

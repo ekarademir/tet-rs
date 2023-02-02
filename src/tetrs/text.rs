@@ -2,7 +2,13 @@ use std::collections::HashMap;
 
 use anyhow::Context;
 use font::{Glyph, Segment};
-use lyon::{math::point, path::Path};
+use lyon::{
+    math::point,
+    path::Path,
+    tessellation::{BuffersBuilder, FillOptions, FillTessellator, FillVertex, VertexBuffers},
+};
+
+use super::drawable::Geometry;
 
 const NUMS: [char; 10] = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
 
@@ -41,7 +47,8 @@ impl Text {
         Ok(Text { lookup })
     }
 
-    pub fn write(&self, input: &str, colour: super::colours::Colour) -> super::drawable::Geometry {
+    pub fn write(&self, input: &str, colour: super::colours::Colour) -> Geometry {
+        let mut art = Geometry::default();
         for c in input.chars() {
             if let Some(glyph) = self.lookup.get(&c) {
                 let mut builder = Path::builder();
@@ -68,8 +75,29 @@ impl Text {
                 builder.close();
 
                 let path = builder.build();
+
+                let mut tesselator = FillTessellator::new();
+                let mut geom: VertexBuffers<super::Vertex, u16> = VertexBuffers::new();
+
+                {
+                    tesselator
+                        .tessellate_path(
+                            &path,
+                            &FillOptions::default(),
+                            &mut BuffersBuilder::new(&mut geom, |vertex: FillVertex| {
+                                let pos = vertex.position();
+                                ([pos.x, pos.y], colour).into()
+                            }),
+                        )
+                        .unwrap();
+                }
+
+                art += Geometry {
+                    vertices: geom.vertices,
+                    indices: geom.indices,
+                };
             }
         }
-        todo!()
+        art
     }
 }
