@@ -4,13 +4,14 @@ use super::colours;
 use super::drawable::Geometry;
 use super::vertex::{ScreenCoord, ToVertices};
 
-const SCREEN_WIDTH: u32 = 30; // Blocks
-const SCREEN_HEIGHT: u32 = 30; // Blocks
-const GAME_AREA_WIDTH: u32 = 12; // Blocks
-const GAME_AREA_HEIGHT: u32 = 28; // Blocks
-const LEFT_MARGIN: u32 = 1; // Blocks
-const TOP_MARGIN: u32 = 1; // Blocks
-const BOTTOM_MARGIN: u32 = 1; // Blocks
+pub const SCREEN_WIDTH: u32 = 30; // Blocks
+pub const SCREEN_HEIGHT: u32 = 30; // Blocks
+pub const GAME_AREA_WIDTH: u32 = 12; // Blocks
+pub const GAME_AREA_HEIGHT: u32 = 28; // Blocks
+pub const LEFT_MARGIN: u32 = 1; // Blocks
+pub const TOP_MARGIN: u32 = 1; // Blocks
+pub const SPACE: u32 = 1; // Blocks
+pub const BOTTOM_MARGIN: u32 = 1; // Blocks
 
 pub type Frame = winit::dpi::PhysicalSize<u32>;
 

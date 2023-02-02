@@ -47,7 +47,7 @@ impl Tetrs {
             .configure(&self.base.device, &self.base.surface_config);
     }
 
-    pub fn render_all(&self) {
+    pub fn render_all(&self) -> anyhow::Result<()> {
         let frame = self.get_next_frame();
         let view = frame
             .texture
@@ -55,8 +55,11 @@ impl Tetrs {
 
         self.scene.render_game(&self, &view);
         self.scene.render_blocks(&self, &view);
+        text::render(&self, &view, "next\n\n\n\n\n\nscore   1234\n\nlevel   12")
+            .context("Can't render text")?;
 
         frame.present();
+        Ok(())
     }
 
     fn get_next_frame(&self) -> wgpu::SurfaceTexture {
