@@ -74,12 +74,18 @@ impl<'a> Scene {
         self.window_size = new_size.clone();
     }
 
+    pub fn render_next(&mut self, view: &wgpu::TextureView, game_state: &super::GameState) {
+        self.write(&view, "next", SPACE * 1);
+    }
+
     pub fn render_score(&mut self, view: &wgpu::TextureView, game_state: &super::GameState) {
-        let text = format!(
-            "next\n\n\n\n\n\nscore   {}\n\nlevel   {}",
-            game_state.score, game_state.level
-        );
-        self.write(&view, text.as_str());
+        let text = format!("score   {}", game_state.score);
+        self.write(&view, text.as_str(), SPACE * 12);
+    }
+
+    pub fn render_level(&mut self, view: &wgpu::TextureView, game_state: &super::GameState) {
+        let text = format!("level   {}", game_state.level);
+        self.write(&view, text.as_str(), SPACE * 14);
     }
 
     pub fn render_game(&self, view: &wgpu::TextureView) {
@@ -167,7 +173,7 @@ impl<'a> Scene {
         self.base.queue.submit(Some(encoder.finish()));
     }
 
-    fn write(&mut self, view: &wgpu::TextureView, text: &str) {
+    fn write(&mut self, view: &wgpu::TextureView, text: &str, y_blocks: u32) {
         let (left_margin, top_margin) = {
             (
                 (self.window_size.width - self.scene_size.width) / 2,
@@ -176,14 +182,8 @@ impl<'a> Scene {
         };
         let font_size = 50.;
         let colour: Color = super::colours::YELLOW.into();
-        let pos_x =
-            (super::scene::LEFT_MARGIN + super::scene::GAME_AREA_WIDTH + super::scene::SPACE)
-                * self.block_size
-                + left_margin;
-        let pos_y =
-            (super::scene::TOP_MARGIN + super::scene::GAME_AREA_HEIGHT / 2 + super::scene::SPACE)
-                * self.block_size
-                + top_margin;
+        let pos_x = (LEFT_MARGIN + GAME_AREA_WIDTH + SPACE) * self.block_size + left_margin;
+        let pos_y = (TOP_MARGIN + y_blocks + SPACE) * self.block_size + top_margin;
         let section = Section::default()
             .add_text(Text::new(text).with_scale(font_size).with_color(colour))
             .with_bounds((

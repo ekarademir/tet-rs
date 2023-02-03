@@ -34,7 +34,9 @@ impl Tetrs {
 
         self.scene.render_game(&view);
         self.scene.render_blocks(&view, &self.game_state);
+        self.scene.render_next(&view, &self.game_state);
         self.scene.render_score(&view, &self.game_state);
+        self.scene.render_level(&view, &self.game_state);
 
         frame.present();
         Ok(())
