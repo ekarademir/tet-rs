@@ -1,5 +1,8 @@
 use std::{borrow::Cow, cmp};
 
+use anyhow::Context;
+use wgpu_text::section::{BuiltInLineBreaker, Color, Layout, Section, Text, VerticalAlign};
+
 use super::colours;
 use super::drawable::Geometry;
 use super::vertex::{ScreenCoord, ToVertices};
@@ -20,22 +23,26 @@ pub struct Scene {
     pub scene_size: Frame,
     pub block_size: u32,
     pub line_weight: u32,
+    pub writer: super::Writer,
     game_area_pipeline: wgpu::RenderPipeline,
 }
 
 impl<'a> Scene {
-    pub fn new(base: &'a super::Base) -> Self {
+    pub fn new(base: &'a super::Base) -> anyhow::Result<Self> {
         let window_size = base.window_size.clone();
 
         let block_size: u32 = Scene::calculate_block_size(&window_size);
 
-        Scene {
+        let writer = super::Writer::new(&base).context("Couldn't create the text writer")?;
+
+        Ok(Scene {
             game_area_pipeline: Scene::build_game_area_pipeline(&base),
             window_size,
             scene_size: Frame::new(SCREEN_HEIGHT * block_size, SCREEN_WIDTH * block_size),
             block_size,
             line_weight: 3,
-        }
+            writer,
+        })
     }
 
     pub fn resize(&mut self, new_size: &Frame) {
@@ -66,7 +73,62 @@ impl<'a> Scene {
         }
     }
 
-    pub fn render_game(&self, tetrs: &super::Tetrs, view: &wgpu::TextureView) {
+    pub fn write(&mut self, base: &super::Base, view: &wgpu::TextureView, text: &str) {
+        let (left_margin, top_margin) = {
+            (
+                (self.window_size.width - self.scene_size.width) / 2,
+                (self.window_size.height - self.scene_size.height) / 2,
+            )
+        };
+        let font_size = 50.;
+        let colour: Color = super::colours::YELLOW.into();
+        let pos_x =
+            (super::scene::LEFT_MARGIN + super::scene::GAME_AREA_WIDTH + super::scene::SPACE)
+                * self.block_size
+                + left_margin;
+        let pos_y =
+            (super::scene::TOP_MARGIN + super::scene::GAME_AREA_HEIGHT / 2 + super::scene::SPACE)
+                * self.block_size
+                + top_margin;
+        let section = Section::default()
+            .add_text(Text::new(text).with_scale(font_size).with_color(colour))
+            .with_bounds((
+                self.window_size.width as f32 / 2.0,
+                self.window_size.height as f32,
+            ))
+            .with_layout(
+                Layout::default()
+                    .v_align(VerticalAlign::Center)
+                    .line_breaker(BuiltInLineBreaker::AnyCharLineBreaker),
+            )
+            .with_screen_position((pos_x as f32, pos_y as f32))
+            .to_owned();
+
+        let mut encoder = base
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+
+        // Render pass
+        {
+            encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: None,
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &view,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Load,
+                        store: true,
+                    },
+                })],
+                depth_stencil_attachment: None,
+            });
+        }
+        self.writer.brush.queue(&section);
+        let cmd_buffer = self.writer.brush.draw(&base.device, &view, &base.queue);
+        base.queue.submit([encoder.finish(), cmd_buffer]);
+    }
+
+    pub fn render_game(&self, base: &super::Base, view: &wgpu::TextureView) {
         let outer_rect = self
             .rectangle(
                 self.block_size * LEFT_MARGIN - self.line_weight,
@@ -75,7 +137,7 @@ impl<'a> Scene {
                 self.block_size * BOTTOM_MARGIN - self.line_weight,
                 colours::DARK_GREEN,
             )
-            .to_drawable(tetrs);
+            .to_drawable(base);
         let inner_rect = self
             .rectangle(
                 self.block_size * LEFT_MARGIN,
@@ -84,10 +146,9 @@ impl<'a> Scene {
                 self.block_size * BOTTOM_MARGIN,
                 colours::BLACK,
             )
-            .to_drawable(tetrs);
+            .to_drawable(base);
 
-        let mut encoder = tetrs
-            .base
+        let mut encoder = base
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
@@ -116,11 +177,11 @@ impl<'a> Scene {
             rpass.set_vertex_buffer(0, inner_rect.vertex_buffer.slice(..));
             rpass.draw_indexed(0..inner_rect.index_buffer_len, 0, 0..1);
         }
-        tetrs.base.queue.submit(Some(encoder.finish()));
+        base.queue.submit(Some(encoder.finish()));
     }
 
     pub fn render_blocks(&self, tetrs: &super::Tetrs, view: &wgpu::TextureView) {
-        let blx = self.blocks(tetrs).to_drawable(tetrs);
+        let blx = self.blocks(tetrs).to_drawable(&tetrs.base);
 
         let mut encoder = tetrs
             .base

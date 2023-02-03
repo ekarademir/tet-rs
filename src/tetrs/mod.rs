@@ -1,10 +1,10 @@
 mod base;
-pub mod colours;
+mod colours;
 mod drawable;
 mod game_state;
 mod scene;
-pub mod text;
 mod vertex;
+mod writer;
 
 use anyhow::Context;
 use winit::{
@@ -16,6 +16,7 @@ use base::Base;
 use game_state::GameState;
 use scene::{Frame, Scene};
 use vertex::Vertex;
+use writer::Writer;
 
 pub struct Tetrs {
     base: Base,
@@ -29,7 +30,7 @@ impl Tetrs {
             .await
             .context("Couldn't initialize base")?;
         let game_state = GameState::default();
-        let scene = Scene::new(&base);
+        let scene = Scene::new(&base).context("Couldn't create the scene")?;
 
         Ok(Tetrs {
             base,
@@ -47,16 +48,21 @@ impl Tetrs {
             .configure(&self.base.device, &self.base.surface_config);
     }
 
-    pub fn render_all(&self) -> anyhow::Result<()> {
+    pub fn render_all(&mut self) -> anyhow::Result<()> {
         let frame = self.get_next_frame();
         let view = frame
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
 
-        self.scene.render_game(&self, &view);
+        self.scene.render_game(&self.base, &view);
+        {
+            self.scene.write(
+                &self.base,
+                &view,
+                "next\n\n\n\n\n\nscore   1234\n\nlevel   12",
+            );
+        }
         self.scene.render_blocks(&self, &view);
-        text::render(&self, &view, "next\n\n\n\n\n\nscore   1234\n\nlevel   12")
-            .context("Can't render text")?;
 
         frame.present();
         Ok(())
@@ -87,7 +93,7 @@ pub async fn run(
                 window.request_redraw();
             }
             Event::RedrawRequested(_) => {
-                tetrs.render_all();
+                tetrs.render_all().unwrap();
             }
             Event::WindowEvent {
                 event: WindowEvent::CloseRequested,
