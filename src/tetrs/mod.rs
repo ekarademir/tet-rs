@@ -55,14 +55,13 @@ impl Tetrs {
             .create_view(&wgpu::TextureViewDescriptor::default());
 
         self.scene.render_game(&self.base, &view);
-        {
-            self.scene.write(
-                &self.base,
-                &view,
-                "next\n\n\n\n\n\nscore   1234\n\nlevel   12",
-            );
-        }
-        self.scene.render_blocks(&self, &view);
+        self.scene
+            .render_blocks(&self.base, &view, &self.game_state);
+        self.scene.write(
+            &self.base,
+            &view,
+            "next\n\n\n\n\n\nscore   1234\n\nlevel   12",
+        );
 
         frame.present();
         Ok(())

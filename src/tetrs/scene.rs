@@ -180,11 +180,15 @@ impl<'a> Scene {
         base.queue.submit(Some(encoder.finish()));
     }
 
-    pub fn render_blocks(&self, tetrs: &super::Tetrs, view: &wgpu::TextureView) {
-        let blx = self.blocks(tetrs).to_drawable(&tetrs.base);
+    pub fn render_blocks(
+        &self,
+        base: &super::Base,
+        view: &wgpu::TextureView,
+        game_state: &super::GameState,
+    ) {
+        let blx = self.blocks(game_state).to_drawable(&base);
 
-        let mut encoder = tetrs
-            .base
+        let mut encoder = base
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
@@ -209,7 +213,7 @@ impl<'a> Scene {
             rpass.set_vertex_buffer(0, blx.vertex_buffer.slice(..));
             rpass.draw_indexed(0..blx.index_buffer_len, 0, 0..1);
         }
-        tetrs.base.queue.submit(Some(encoder.finish()));
+        base.queue.submit(Some(encoder.finish()));
     }
 
     fn rectangle(
@@ -234,7 +238,7 @@ impl<'a> Scene {
         Geometry { indices, vertices }
     }
 
-    fn blocks(&self, tetrs: &super::Tetrs) -> Geometry {
+    fn blocks(&self, game_state: &super::GameState) -> Geometry {
         let bs = self.block_size;
         let m: u32 = 1;
 
@@ -248,7 +252,7 @@ impl<'a> Scene {
         let mut blx = Geometry::default();
 
         let mut offsy = ga_top - bs;
-        for row in tetrs.game_state.blocks {
+        for row in game_state.blocks {
             let mut offsx = ga_left;
             for col in row {
                 let (b_left, b_top, b_right, b_bottom) =
