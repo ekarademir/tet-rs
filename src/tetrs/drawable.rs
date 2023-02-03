@@ -1,5 +1,8 @@
 use wgpu::util::DeviceExt;
 
+use super::base::Base;
+use super::vertex::Vertex;
+
 #[derive(Debug)]
 pub struct Drawable {
     pub vertex_buffer: wgpu::Buffer,
@@ -10,7 +13,7 @@ pub struct Drawable {
 #[derive(Debug)]
 pub struct Geometry {
     pub indices: Vec<u16>,
-    pub vertices: Vec<super::Vertex>,
+    pub vertices: Vec<Vertex>,
 }
 
 impl Default for Geometry {
@@ -23,7 +26,7 @@ impl Default for Geometry {
 }
 
 impl Geometry {
-    pub fn to_drawable(&self, base: &super::Base) -> Drawable {
+    pub fn to_drawable(&self, base: &Base) -> Drawable {
         let vertex_buffer = base
             .device
             .create_buffer_init(&wgpu::util::BufferInitDescriptor {

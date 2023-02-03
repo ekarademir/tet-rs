@@ -1,22 +1,11 @@
-mod base;
-mod colours;
-mod drawable;
-mod game_state;
-mod scene;
-mod vertex;
-mod writer;
-
 use anyhow::Context;
 use winit::{
     event::{Event, WindowEvent},
     event_loop::ControlFlow,
 };
 
-use base::Base;
 use game_state::GameState;
 use scene::{Frame, Scene};
-use vertex::Vertex;
-use writer::Writer;
 
 pub struct Tetrs {
     game_state: GameState,
@@ -79,3 +68,11 @@ pub async fn run(
         }
     });
 }
+
+mod base;
+mod colours;
+mod drawable;
+mod game_state;
+mod scene;
+mod vertex;
+mod writer;

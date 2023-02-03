@@ -3,9 +3,12 @@ use std::{borrow::Cow, cmp};
 use anyhow::Context;
 use wgpu_text::section::{BuiltInLineBreaker, Color, Layout, Section, Text, VerticalAlign};
 
+use super::base::Base;
 use super::colours;
 use super::drawable::Geometry;
+use super::vertex::Vertex;
 use super::vertex::{ScreenCoord, ToVertices};
+use super::writer::Writer;
 
 pub const SCREEN_WIDTH: u32 = 30; // Blocks
 pub const SCREEN_HEIGHT: u32 = 30; // Blocks
@@ -19,25 +22,25 @@ pub const BOTTOM_MARGIN: u32 = 1; // Blocks
 pub type Frame = winit::dpi::PhysicalSize<u32>;
 
 pub struct Scene {
-    pub window_size: Frame,
-    pub scene_size: Frame,
-    pub block_size: u32,
-    pub line_weight: u32,
-    pub writer: super::Writer,
+    base: Base,
+    block_size: u32,
+    line_weight: u32,
+    scene_size: Frame,
+    window_size: Frame,
     game_area_pipeline: wgpu::RenderPipeline,
-    base: super::Base,
+    writer: Writer,
 }
 
 impl<'a> Scene {
     pub async fn new(window: &winit::window::Window) -> anyhow::Result<Self> {
-        let base = super::Base::new(window)
+        let base = Base::new(window)
             .await
             .context("Couldn't initialize base")?;
         let window_size = base.window_size.clone();
 
         let block_size: u32 = Scene::calculate_block_size(&window_size);
 
-        let writer = super::Writer::new(&base).context("Couldn't create the text writer")?;
+        let writer = Writer::new(&base).context("Couldn't create the text writer")?;
 
         Ok(Scene {
             game_area_pipeline: Scene::build_game_area_pipeline(&base),
@@ -297,7 +300,7 @@ impl<'a> Scene {
         blx
     }
 
-    fn build_game_area_pipeline(base: &'a super::Base) -> wgpu::RenderPipeline {
+    fn build_game_area_pipeline(base: &'a Base) -> wgpu::RenderPipeline {
         let shader = base
             .device
             .create_shader_module(wgpu::ShaderModuleDescriptor {
@@ -315,7 +318,7 @@ impl<'a> Scene {
 
         let swapchain_format = base.surface.get_supported_formats(&base.adapter)[0];
 
-        let vertex_size = std::mem::size_of::<super::Vertex>();
+        let vertex_size = std::mem::size_of::<Vertex>();
         let vertex_buffers_descriptor = [wgpu::VertexBufferLayout {
             array_stride: vertex_size as wgpu::BufferAddress,
             step_mode: wgpu::VertexStepMode::Vertex,
