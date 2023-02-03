@@ -27,7 +27,7 @@ pub struct Scene {
     line_weight: u32,
     scene_size: Frame,
     window_size: Frame,
-    game_area_pipeline: wgpu::RenderPipeline,
+    pipeline: wgpu::RenderPipeline,
     writer: Writer,
 }
 
@@ -43,7 +43,7 @@ impl<'a> Scene {
         let writer = Writer::new(&base).context("Couldn't create the text writer")?;
 
         Ok(Scene {
-            game_area_pipeline: Scene::build_game_area_pipeline(&base),
+            pipeline: Scene::build_pipeline(&base),
             window_size,
             scene_size: Frame::new(SCREEN_HEIGHT * block_size, SCREEN_WIDTH * block_size),
             block_size,
@@ -122,7 +122,7 @@ impl<'a> Scene {
                 depth_stencil_attachment: None,
             });
 
-            rpass.set_pipeline(&self.game_area_pipeline);
+            rpass.set_pipeline(&self.pipeline);
 
             rpass.set_index_buffer(outer_rect.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
             rpass.set_vertex_buffer(0, outer_rect.vertex_buffer.slice(..));
@@ -158,7 +158,7 @@ impl<'a> Scene {
                 depth_stencil_attachment: None,
             });
 
-            rpass.set_pipeline(&self.game_area_pipeline);
+            rpass.set_pipeline(&self.pipeline);
 
             rpass.set_index_buffer(blx.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
             rpass.set_vertex_buffer(0, blx.vertex_buffer.slice(..));
@@ -300,7 +300,7 @@ impl<'a> Scene {
         blx
     }
 
-    fn build_game_area_pipeline(base: &'a Base) -> wgpu::RenderPipeline {
+    fn build_pipeline(base: &'a Base) -> wgpu::RenderPipeline {
         let shader = base
             .device
             .create_shader_module(wgpu::ShaderModuleDescriptor {
