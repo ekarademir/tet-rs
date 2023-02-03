@@ -25,10 +25,14 @@ pub struct Scene {
     pub line_weight: u32,
     pub writer: super::Writer,
     game_area_pipeline: wgpu::RenderPipeline,
+    base: super::Base,
 }
 
 impl<'a> Scene {
-    pub fn new(base: &'a super::Base) -> anyhow::Result<Self> {
+    pub async fn new(window: &winit::window::Window) -> anyhow::Result<Self> {
+        let base = super::Base::new(window)
+            .await
+            .context("Couldn't initialize base")?;
         let window_size = base.window_size.clone();
 
         let block_size: u32 = Scene::calculate_block_size(&window_size);
@@ -42,10 +46,23 @@ impl<'a> Scene {
             block_size,
             line_weight: 3,
             writer,
+            base,
         })
     }
 
+    pub fn get_next_frame(&self) -> wgpu::SurfaceTexture {
+        self.base
+            .surface
+            .get_current_texture()
+            .expect("Couldn't get next swapchain texture")
+    }
+
     pub fn resize(&mut self, new_size: &Frame) {
+        self.base.surface_config.width = new_size.width;
+        self.base.surface_config.height = new_size.height;
+        self.base
+            .surface
+            .configure(&self.base.device, &self.base.surface_config);
         self.block_size = Scene::calculate_block_size(new_size);
         self.scene_size = Frame::new(
             SCREEN_HEIGHT * self.block_size,
@@ -54,26 +71,100 @@ impl<'a> Scene {
         self.window_size = new_size.clone();
     }
 
-    fn calculate_block_size(window_size: &Frame) -> u32 {
-        let block_size: u32 = cmp::min(
-            window_size.height / SCREEN_HEIGHT,
-            window_size.width / SCREEN_WIDTH,
+    pub fn render_score(&mut self, view: &wgpu::TextureView, game_state: &super::GameState) {
+        let text = format!(
+            "next\n\n\n\n\n\nscore   {}\n\nlevel   {}",
+            game_state.score, game_state.level
         );
-
-        if block_size * SCREEN_WIDTH > window_size.width
-            || block_size * SCREEN_HEIGHT > window_size.height
-        {
-            if block_size > 5 {
-                block_size - 5
-            } else {
-                0
-            }
-        } else {
-            block_size
-        }
+        self.write(&view, text.as_str());
     }
 
-    pub fn write(&mut self, base: &super::Base, view: &wgpu::TextureView, text: &str) {
+    pub fn render_game(&self, view: &wgpu::TextureView) {
+        let outer_rect = self
+            .rectangle(
+                self.block_size * LEFT_MARGIN - self.line_weight,
+                self.block_size * (BOTTOM_MARGIN + GAME_AREA_HEIGHT) + self.line_weight,
+                self.block_size * (LEFT_MARGIN + GAME_AREA_WIDTH) + self.line_weight,
+                self.block_size * BOTTOM_MARGIN - self.line_weight,
+                colours::DARK_GREEN,
+            )
+            .to_drawable(&self.base);
+        let inner_rect = self
+            .rectangle(
+                self.block_size * LEFT_MARGIN,
+                self.block_size * (BOTTOM_MARGIN + GAME_AREA_HEIGHT),
+                self.block_size * (LEFT_MARGIN + GAME_AREA_WIDTH),
+                self.block_size * BOTTOM_MARGIN,
+                colours::BLACK,
+            )
+            .to_drawable(&self.base);
+
+        let mut encoder = self
+            .base
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+
+        // Render pass
+        {
+            let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: None,
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &view,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
+                        store: true,
+                    },
+                })],
+                depth_stencil_attachment: None,
+            });
+
+            rpass.set_pipeline(&self.game_area_pipeline);
+
+            rpass.set_index_buffer(outer_rect.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+            rpass.set_vertex_buffer(0, outer_rect.vertex_buffer.slice(..));
+            rpass.draw_indexed(0..outer_rect.index_buffer_len, 0, 0..1);
+
+            rpass.set_index_buffer(inner_rect.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+            rpass.set_vertex_buffer(0, inner_rect.vertex_buffer.slice(..));
+            rpass.draw_indexed(0..inner_rect.index_buffer_len, 0, 0..1);
+        }
+        self.base.queue.submit(Some(encoder.finish()));
+    }
+
+    pub fn render_blocks(&self, view: &wgpu::TextureView, game_state: &super::GameState) {
+        let blx = self.blocks(game_state).to_drawable(&self.base);
+
+        let mut encoder = self
+            .base
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+
+        // Render pass
+        {
+            let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: None,
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &view,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Load,
+                        store: true,
+                    },
+                })],
+                depth_stencil_attachment: None,
+            });
+
+            rpass.set_pipeline(&self.game_area_pipeline);
+
+            rpass.set_index_buffer(blx.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+            rpass.set_vertex_buffer(0, blx.vertex_buffer.slice(..));
+            rpass.draw_indexed(0..blx.index_buffer_len, 0, 0..1);
+        }
+        self.base.queue.submit(Some(encoder.finish()));
+    }
+
+    fn write(&mut self, view: &wgpu::TextureView, text: &str) {
         let (left_margin, top_margin) = {
             (
                 (self.window_size.width - self.scene_size.width) / 2,
@@ -104,7 +195,8 @@ impl<'a> Scene {
             .with_screen_position((pos_x as f32, pos_y as f32))
             .to_owned();
 
-        let mut encoder = base
+        let mut encoder = self
+            .base
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
@@ -124,96 +216,30 @@ impl<'a> Scene {
             });
         }
         self.writer.brush.queue(&section);
-        let cmd_buffer = self.writer.brush.draw(&base.device, &view, &base.queue);
-        base.queue.submit([encoder.finish(), cmd_buffer]);
+        let cmd_buffer = self
+            .writer
+            .brush
+            .draw(&self.base.device, &view, &self.base.queue);
+        self.base.queue.submit([encoder.finish(), cmd_buffer]);
     }
 
-    pub fn render_game(&self, base: &super::Base, view: &wgpu::TextureView) {
-        let outer_rect = self
-            .rectangle(
-                self.block_size * LEFT_MARGIN - self.line_weight,
-                self.block_size * (BOTTOM_MARGIN + GAME_AREA_HEIGHT) + self.line_weight,
-                self.block_size * (LEFT_MARGIN + GAME_AREA_WIDTH) + self.line_weight,
-                self.block_size * BOTTOM_MARGIN - self.line_weight,
-                colours::DARK_GREEN,
-            )
-            .to_drawable(base);
-        let inner_rect = self
-            .rectangle(
-                self.block_size * LEFT_MARGIN,
-                self.block_size * (BOTTOM_MARGIN + GAME_AREA_HEIGHT),
-                self.block_size * (LEFT_MARGIN + GAME_AREA_WIDTH),
-                self.block_size * BOTTOM_MARGIN,
-                colours::BLACK,
-            )
-            .to_drawable(base);
+    fn calculate_block_size(window_size: &Frame) -> u32 {
+        let block_size: u32 = cmp::min(
+            window_size.height / SCREEN_HEIGHT,
+            window_size.width / SCREEN_WIDTH,
+        );
 
-        let mut encoder = base
-            .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
-
-        // Render pass
+        if block_size * SCREEN_WIDTH > window_size.width
+            || block_size * SCREEN_HEIGHT > window_size.height
         {
-            let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: None,
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &view,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
-                        store: true,
-                    },
-                })],
-                depth_stencil_attachment: None,
-            });
-
-            rpass.set_pipeline(&self.game_area_pipeline);
-
-            rpass.set_index_buffer(outer_rect.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-            rpass.set_vertex_buffer(0, outer_rect.vertex_buffer.slice(..));
-            rpass.draw_indexed(0..outer_rect.index_buffer_len, 0, 0..1);
-
-            rpass.set_index_buffer(inner_rect.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-            rpass.set_vertex_buffer(0, inner_rect.vertex_buffer.slice(..));
-            rpass.draw_indexed(0..inner_rect.index_buffer_len, 0, 0..1);
+            if block_size > 5 {
+                block_size - 5
+            } else {
+                0
+            }
+        } else {
+            block_size
         }
-        base.queue.submit(Some(encoder.finish()));
-    }
-
-    pub fn render_blocks(
-        &self,
-        base: &super::Base,
-        view: &wgpu::TextureView,
-        game_state: &super::GameState,
-    ) {
-        let blx = self.blocks(game_state).to_drawable(&base);
-
-        let mut encoder = base
-            .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
-
-        // Render pass
-        {
-            let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: None,
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &view,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Load,
-                        store: true,
-                    },
-                })],
-                depth_stencil_attachment: None,
-            });
-
-            rpass.set_pipeline(&self.game_area_pipeline);
-
-            rpass.set_index_buffer(blx.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-            rpass.set_vertex_buffer(0, blx.vertex_buffer.slice(..));
-            rpass.draw_indexed(0..blx.index_buffer_len, 0, 0..1);
-        }
-        base.queue.submit(Some(encoder.finish()));
     }
 
     fn rectangle(
