@@ -1,4 +1,4 @@
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Default)]
 pub struct Colour {
     red: u8,
     green: u8,
@@ -6,47 +6,29 @@ pub struct Colour {
     alpha: u8,
 }
 
-pub const BLACK: Colour = Colour {
-    red: 0,
-    green: 0,
-    blue: 0,
-    alpha: 255,
-};
+const fn convert(value: u32) -> Colour {
+    let alpha = 0xFF;
+    let blue = (value % 0x100) as u8;
+    let value = value / 0x100;
+    let green = (value % 0x100) as u8;
+    let value = value / 0x100;
+    let red = (value % 0x100) as u8;
+    Colour {
+        red,
+        green,
+        blue,
+        alpha,
+    }
+}
 
-pub const WHITE: Colour = Colour {
-    red: 255,
-    green: 255,
-    blue: 255,
-    alpha: 255,
-};
-
-pub const ORANGE: Colour = Colour {
-    red: 252,
-    green: 115,
-    blue: 0,
-    alpha: 255,
-};
-
-pub const GREEN: Colour = Colour {
-    red: 191,
-    green: 219,
-    blue: 56,
-    alpha: 255,
-};
-
-pub const DARK_GREEN: Colour = Colour {
-    red: 31,
-    green: 138,
-    blue: 112,
-    alpha: 255,
-};
-
-pub const YELLOW: Colour = Colour {
-    red: 252,
-    green: 226,
-    blue: 42,
-    alpha: 255,
-};
+pub const BLACK: Colour = convert(0x000000);
+pub const WHITE: Colour = convert(0xFFFFFF);
+pub const ORANGE: Colour = convert(0xF2921D);
+pub const GREEN: Colour = convert(0xBFDB38);
+pub const DARK_GREEN: Colour = convert(0x00425A);
+pub const YELLOW: Colour = convert(0xFCE22A);
+pub const MAROON: Colour = convert(0xA61F69);
+pub const LIGHT_PURPLE: Colour = convert(0xA084DC);
 
 impl Into<[f32; 4]> for Colour {
     fn into(self) -> [f32; 4] {
