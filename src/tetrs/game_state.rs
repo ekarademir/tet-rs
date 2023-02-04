@@ -10,7 +10,6 @@ const MAX_SPEED: u8 = 10;
 #[derive(Clone, Copy, PartialEq)]
 pub enum BlockState {
     Emp,
-    Unrendered,
     Eye,
     Tee,
     Ess,
@@ -19,11 +18,18 @@ pub enum BlockState {
     Ell,
 }
 
+pub struct CurrentTetromino {
+    pub tetromino: Tetromino,
+    pub x: usize,
+    pub y: usize,
+}
+
 pub struct GameState {
     pub blocks: [[BlockState; NUM_COLS]; NUM_ROWS + UNRENDERED_ROWS],
     pub score: u128,
     pub level: u8,
     pub time_elapsed: u8,
+    pub current_tetromino: Option<CurrentTetromino>,
 }
 
 #[derive(Debug)]
@@ -54,79 +60,92 @@ impl GameState {
         }
     }
 
-    fn move_blocks_down(&mut self) {
+    // fn remove
+
+    fn update_blocks(&mut self) {
         //
     }
 }
 
 impl std::default::Default for GameState {
     fn default() -> Self {
-        let mut blocks = [[BlockState::Emp; NUM_COLS]; UNRENDERED_ROWS + NUM_ROWS];
-        for x in 0..UNRENDERED_ROWS {
-            blocks[x] = [BlockState::Unrendered; NUM_COLS];
-        }
         GameState {
-            blocks,
+            blocks: [[BlockState::Emp; NUM_COLS]; UNRENDERED_ROWS + NUM_ROWS],
             score: 0,
             level: 0,
             time_elapsed: 0,
+            current_tetromino: None,
         }
     }
 }
 
-pub struct Tetromino<const R: usize, const C: usize> {
+pub struct Tetromino {
     pub colour: Colour,
-    pub shape: [[BlockState; C]; R],
+    pub shape: Vec<Vec<BlockState>>,
 }
 
-pub const Eye: Tetromino<4, 1> = Tetromino {
-    colour: colours::LIGHT_PURPLE,
-    shape: [
-        [BlockState::Eye],
-        [BlockState::Eye],
-        [BlockState::Eye],
-        [BlockState::Eye],
-    ],
-};
+impl Tetromino {
+    pub fn eye() -> Self {
+        Tetromino {
+            colour: colours::LIGHT_PURPLE,
+            shape: vec![
+                vec![BlockState::Eye],
+                vec![BlockState::Eye],
+                vec![BlockState::Eye],
+                vec![BlockState::Eye],
+            ],
+        }
+    }
 
-pub const Tee: Tetromino<2, 3> = Tetromino {
-    colour: colours::GRAY,
-    shape: [
-        [BlockState::Emp, BlockState::Tee, BlockState::Emp],
-        [BlockState::Tee, BlockState::Tee, BlockState::Tee],
-    ],
-};
+    pub fn tee() -> Self {
+        Tetromino {
+            colour: colours::GRAY,
+            shape: vec![
+                vec![BlockState::Emp, BlockState::Tee, BlockState::Emp],
+                vec![BlockState::Tee, BlockState::Tee, BlockState::Tee],
+            ],
+        }
+    }
 
-pub const Ess: Tetromino<2, 3> = Tetromino {
-    colour: colours::MAROON,
-    shape: [
-        [BlockState::Emp, BlockState::Ess, BlockState::Ess],
-        [BlockState::Ess, BlockState::Ess, BlockState::Emp],
-    ],
-};
+    pub fn ess() -> Self {
+        Tetromino {
+            colour: colours::MAROON,
+            shape: vec![
+                vec![BlockState::Emp, BlockState::Ess, BlockState::Ess],
+                vec![BlockState::Ess, BlockState::Ess, BlockState::Emp],
+            ],
+        }
+    }
 
-pub const Zee: Tetromino<2, 3> = Tetromino {
-    colour: colours::GREEN,
-    shape: [
-        [BlockState::Zee, BlockState::Zee, BlockState::Emp],
-        [BlockState::Emp, BlockState::Zee, BlockState::Zee],
-    ],
-};
+    pub fn zee() -> Self {
+        Tetromino {
+            colour: colours::GREEN,
+            shape: vec![
+                vec![BlockState::Zee, BlockState::Zee, BlockState::Emp],
+                vec![BlockState::Emp, BlockState::Zee, BlockState::Zee],
+            ],
+        }
+    }
 
-pub const Arr: Tetromino<3, 2> = Tetromino {
-    colour: colours::RED,
-    shape: [
-        [BlockState::Arr, BlockState::Arr],
-        [BlockState::Arr, BlockState::Emp],
-        [BlockState::Arr, BlockState::Emp],
-    ],
-};
+    pub fn arr() -> Self {
+        Tetromino {
+            colour: colours::RED,
+            shape: vec![
+                vec![BlockState::Arr, BlockState::Arr],
+                vec![BlockState::Arr, BlockState::Emp],
+                vec![BlockState::Arr, BlockState::Emp],
+            ],
+        }
+    }
 
-pub const Ell: Tetromino<3, 2> = Tetromino {
-    colour: colours::BROWN,
-    shape: [
-        [BlockState::Ell, BlockState::Emp],
-        [BlockState::Ell, BlockState::Emp],
-        [BlockState::Ell, BlockState::Ell],
-    ],
-};
+    pub fn ell() -> Self {
+        Tetromino {
+            colour: colours::BROWN,
+            shape: vec![
+                vec![BlockState::Ell, BlockState::Emp],
+                vec![BlockState::Ell, BlockState::Emp],
+                vec![BlockState::Ell, BlockState::Ell],
+            ],
+        }
+    }
+}

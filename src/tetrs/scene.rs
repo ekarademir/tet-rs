@@ -85,7 +85,7 @@ impl<'a> Scene {
     pub fn render_next(&mut self, view: &wgpu::TextureView, game_state: &super::GameState) {
         self.write(&view, "next", SPACE * 1);
         let blx = self
-            .next_tetromino_geom(&game_state::Ell)
+            .next_tetromino_geom(&game_state::Tetromino::ell())
             .to_drawable(&self.base);
         self.draw_blocks(view, blx);
     }
@@ -288,10 +288,7 @@ impl<'a> Scene {
         Geometry { indices, vertices }
     }
 
-    fn next_tetromino_geom<const R: usize, const C: usize>(
-        &self,
-        tetromino: &Tetromino<R, C>,
-    ) -> Geometry {
+    fn next_tetromino_geom(&self, tetromino: &Tetromino) -> Geometry {
         let (ga_left, ga_top) = {
             (
                 self.block_size * (LEFT_MARGIN + GAME_AREA_WIDTH + 3 * SPACE / 2),
@@ -305,13 +302,13 @@ impl<'a> Scene {
         let m: u32 = 1;
 
         let mut offsy = ga_top - bs;
-        for row in tetromino.shape {
+        for row in &tetromino.shape {
             let mut offsx = ga_left;
             for col in row {
                 let (b_left, b_top, b_right, b_bottom) =
                     { (offsx + m, offsy + m, offsx + bs - m, offsy + bs - m) };
 
-                if col != BlockState::Emp {
+                if *col != BlockState::Emp {
                     let g = self.rectangle(b_left, b_top, b_right, b_bottom, tetromino.colour);
                     blx += g;
                 }
@@ -345,14 +342,14 @@ impl<'a> Scene {
                     { (offsx + m, offsy + m, offsx + bs - m, offsy + bs - m) };
 
                 // Ignore the part of the blocks where we use for injecting new tetrominos off-screen
-                if *col != BlockState::Emp || *col != BlockState::Unrendered {
+                if *col != BlockState::Emp {
                     let colour = match col {
-                        BlockState::Arr => game_state::Arr.colour,
-                        BlockState::Ell => game_state::Ell.colour,
-                        BlockState::Ess => game_state::Ess.colour,
-                        BlockState::Eye => game_state::Eye.colour,
-                        BlockState::Zee => game_state::Zee.colour,
-                        BlockState::Tee => game_state::Tee.colour,
+                        BlockState::Arr => game_state::Tetromino::arr().colour,
+                        BlockState::Ell => game_state::Tetromino::ell().colour,
+                        BlockState::Ess => game_state::Tetromino::ess().colour,
+                        BlockState::Eye => game_state::Tetromino::eye().colour,
+                        BlockState::Tee => game_state::Tetromino::tee().colour,
+                        BlockState::Zee => game_state::Tetromino::zee().colour,
                         _ => colours::UNRENDERED,
                     };
                     let g = self.rectangle(b_left, b_top, b_right, b_bottom, colour);
