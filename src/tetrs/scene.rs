@@ -100,6 +100,10 @@ impl<'a> Scene {
         self.write(&view, text.as_str(), SPACE * 14);
     }
 
+    pub fn render_debug(&mut self, view: &wgpu::TextureView, to_dbg: String) {
+        self.write(&view, &to_dbg.as_str(), SPACE * 20);
+    }
+
     pub fn render_game(&self, view: &wgpu::TextureView) {
         let outer_rect = self
             .rectangle(

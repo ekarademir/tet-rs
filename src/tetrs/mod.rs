@@ -1,3 +1,5 @@
+use std::fmt::format;
+
 use anyhow::Context;
 use winit::{
     event::{Event, WindowEvent},
@@ -26,7 +28,7 @@ impl Tetrs {
         self.scene.resize(&size);
     }
 
-    pub fn render_all(&mut self) -> anyhow::Result<()> {
+    pub fn render(&mut self) -> anyhow::Result<()> {
         let frame = self.scene.get_next_frame();
         let view = frame
             .texture
@@ -37,6 +39,8 @@ impl Tetrs {
         self.scene.render_next(&view, &self.game_state);
         self.scene.render_score(&view, &self.game_state);
         self.scene.render_level(&view, &self.game_state);
+        self.scene
+            .render_debug(&view, format!("{:?}", self.game_state.time_elapsed));
 
         frame.present();
         Ok(())
@@ -51,6 +55,8 @@ pub async fn run(
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Wait;
 
+        tetrs.game_state.step_time();
+
         match event {
             Event::WindowEvent {
                 event: WindowEvent::Resized(size),
@@ -60,7 +66,7 @@ pub async fn run(
                 window.request_redraw();
             }
             Event::RedrawRequested(_) => {
-                tetrs.render_all().unwrap();
+                tetrs.render().unwrap();
             }
             Event::WindowEvent {
                 event: WindowEvent::CloseRequested,

@@ -21,6 +21,13 @@ pub struct GameState {
     pub blocks: [[BlockState; NUM_COLS]; NUM_ROWS],
     pub score: String,
     pub level: String,
+    pub time_elapsed: u128,
+}
+
+impl GameState {
+    pub fn step_time(&mut self) {
+        self.time_elapsed += 1;
+    }
 }
 
 impl std::default::Default for GameState {
@@ -29,6 +36,7 @@ impl std::default::Default for GameState {
             blocks: [[BlockState::Filled; NUM_COLS]; NUM_ROWS],
             score: "0000".to_string(),
             level: "000".to_string(),
+            time_elapsed: 0,
         }
     }
 }
