@@ -29,6 +29,9 @@ pub const DARK_GREEN: Colour = convert(0x00425A);
 pub const YELLOW: Colour = convert(0xFCE22A);
 pub const MAROON: Colour = convert(0xA61F69);
 pub const LIGHT_PURPLE: Colour = convert(0xA084DC);
+pub const GRAY: Colour = convert(0x7B8FA1);
+pub const RED: Colour = convert(0xD61355);
+pub const BROWN: Colour = convert(0xB99B6B);
 
 impl Into<[f32; 4]> for Colour {
     fn into(self) -> [f32; 4] {
