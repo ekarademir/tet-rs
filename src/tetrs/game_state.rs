@@ -3,13 +3,14 @@ use anyhow::Context;
 use super::{colours, colours::Colour};
 
 const NUM_ROWS: usize = 28;
+const UNRENDERED_ROWS: usize = 28;
 const NUM_COLS: usize = 12;
 const MAX_SPEED: u8 = 10;
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum BlockState {
     Emp,
-    Filled,
+    Unrendered,
     Eye,
     Tee,
     Ess,
@@ -51,6 +52,10 @@ impl GameState {
         } else {
             MAX_SPEED - self.level
         }
+    }
+
+    fn move_blocks_down(&mut self) {
+        //
     }
 }
 

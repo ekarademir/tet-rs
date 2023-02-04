@@ -344,8 +344,17 @@ impl<'a> Scene {
                 let (b_left, b_top, b_right, b_bottom) =
                     { (offsx + m, offsy + m, offsx + bs - m, offsy + bs - m) };
 
-                if col == BlockState::Filled {
-                    let g = self.rectangle(b_left, b_top, b_right, b_bottom, colours::ORANGE);
+                if col != BlockState::Emp || col != BlockState::Unrendered {
+                    let colour = match col {
+                        BlockState::Arr => game_state::Arr.colour,
+                        BlockState::Ell => game_state::Ell.colour,
+                        BlockState::Ess => game_state::Ess.colour,
+                        BlockState::Eye => game_state::Eye.colour,
+                        BlockState::Zee => game_state::Zee.colour,
+                        BlockState::Tee => game_state::Tee.colour,
+                        _ => colours::UNRENDERED,
+                    };
+                    let g = self.rectangle(b_left, b_top, b_right, b_bottom, colour);
                     blx += g;
                 }
 

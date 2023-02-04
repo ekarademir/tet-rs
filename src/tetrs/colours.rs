@@ -34,6 +34,13 @@ pub const RED: Colour = convert(0xD61355);
 pub const BROWN: Colour = convert(0xB99B6B);
 pub const LIGHT_BLUE: Colour = convert(0x93BFCF);
 
+pub const UNRENDERED: Colour = Colour {
+    red: 0,
+    green: 0,
+    blue: 0,
+    alpha: 0,
+};
+
 impl Into<[f32; 4]> for Colour {
     fn into(self) -> [f32; 4] {
         [
