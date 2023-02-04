@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use anyhow::Context;
 
 use super::{colours, colours::Colour};
 
@@ -24,9 +24,22 @@ pub struct GameState {
     pub time_elapsed: u128,
 }
 
+#[derive(Debug)]
+pub enum GameEvent {
+    Step,
+}
+
 impl GameState {
-    pub fn step_time(&mut self) {
+    pub fn step_time(
+        &mut self,
+        event_loop: &winit::event_loop::EventLoopProxy<GameEvent>,
+    ) -> anyhow::Result<()> {
+        log::debug!("YARRAK");
         self.time_elapsed += 1;
+        event_loop
+            .send_event(GameEvent::Step)
+            .context("Couldn't send GameEvent::Step")?;
+        Ok(())
     }
 }
 

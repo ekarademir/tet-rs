@@ -1,31 +1,52 @@
-use std::fmt::format;
+use std::time::{self, Instant};
 
 use anyhow::Context;
 use winit::{
     event::{Event, WindowEvent},
-    event_loop::ControlFlow,
+    event_loop::{ControlFlow, EventLoop, EventLoopProxy},
+    window::Window,
 };
 
 use game_state::GameState;
 use scene::{Frame, Scene};
 
+pub use game_state::GameEvent;
+
 pub struct Tetrs {
     game_state: GameState,
     scene: Scene,
+    event_loop: EventLoopProxy<GameEvent>,
+    last_stepped: time::Instant,
 }
 
 impl Tetrs {
-    pub async fn new(window: &winit::window::Window) -> anyhow::Result<Tetrs> {
+    pub async fn new(window: &Window, event_loop: &EventLoop<GameEvent>) -> anyhow::Result<Tetrs> {
         let game_state = GameState::default();
         let scene = Scene::new(window)
             .await
             .context("Couldn't create the scene")?;
 
-        Ok(Tetrs { game_state, scene })
+        let event_loop = event_loop.create_proxy();
+
+        Ok(Tetrs {
+            game_state,
+            scene,
+            event_loop,
+            last_stepped: Instant::now(),
+        })
     }
 
     pub fn resize(&mut self, size: Frame) {
         self.scene.resize(&size);
+    }
+
+    pub fn step_time(&mut self) -> anyhow::Result<()> {
+        let delta = time::Duration::from_millis(250);
+        if self.last_stepped.elapsed() > delta {
+            self.game_state.step_time(&self.event_loop)?;
+            self.last_stepped = time::Instant::now();
+        }
+        Ok(())
     }
 
     pub fn render(&mut self) -> anyhow::Result<()> {
@@ -47,15 +68,11 @@ impl Tetrs {
     }
 }
 
-pub async fn run(
-    window: winit::window::Window,
-    event_loop: winit::event_loop::EventLoop<()>,
-    mut tetrs: Tetrs,
-) {
+pub async fn run(window: Window, event_loop: EventLoop<GameEvent>, mut tetrs: Tetrs) {
     event_loop.run(move |event, _, control_flow| {
-        *control_flow = ControlFlow::Wait;
+        *control_flow = ControlFlow::Poll;
 
-        tetrs.game_state.step_time();
+        tetrs.step_time().unwrap();
 
         match event {
             Event::WindowEvent {
@@ -72,6 +89,9 @@ pub async fn run(
                 event: WindowEvent::CloseRequested,
                 ..
             } => *control_flow = ControlFlow::Exit,
+            Event::UserEvent(GameEvent::Step) => {
+                tetrs.render().unwrap();
+            }
             _ => {}
         }
     });

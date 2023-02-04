@@ -14,14 +14,15 @@ fn main() -> anyhow::Result<()> {
 }
 
 async fn execute() -> anyhow::Result<()> {
-    let event_loop = winit::event_loop::EventLoop::new();
+    let event_loop =
+        winit::event_loop::EventLoopBuilder::<tetrs::GameEvent>::with_user_event().build();
     let window = winit::window::WindowBuilder::new()
         .with_min_inner_size(winit::dpi::LogicalSize::new(600, 600))
         .with_title("Tetrs")
         .build(&event_loop)
         .context("Couldn't initialise the window")?;
 
-    let tetrs = tetrs::Tetrs::new(&window)
+    let tetrs = tetrs::Tetrs::new(&window, &event_loop)
         .await
         .context("Can't create tetrs")?;
 
