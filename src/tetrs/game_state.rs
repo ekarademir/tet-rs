@@ -45,7 +45,7 @@ impl GameState {
 impl std::default::Default for GameState {
     fn default() -> Self {
         GameState {
-            blocks: [[BlockState::Filled; NUM_COLS]; NUM_ROWS],
+            blocks: [[BlockState::Emp; NUM_COLS]; NUM_ROWS],
             score: "0000".to_string(),
             level: "000".to_string(),
             time_elapsed: 0,
