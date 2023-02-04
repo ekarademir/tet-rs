@@ -1,7 +1,9 @@
 use std::{borrow::Cow, cmp};
 
 use anyhow::Context;
-use wgpu_text::section::{BuiltInLineBreaker, Color, Layout, Section, Text, VerticalAlign};
+use wgpu_text::section::{
+    BuiltInLineBreaker, Color, HorizontalAlign, Layout, Section, Text, VerticalAlign,
+};
 
 use super::base::Base;
 use super::colours;
@@ -72,6 +74,11 @@ impl<'a> Scene {
             SCREEN_WIDTH * self.block_size,
         );
         self.window_size = new_size.clone();
+        self.writer.brush.resize_view(
+            new_size.width as f32,
+            new_size.height as f32,
+            &self.base.queue,
+        );
     }
 
     pub fn render_next(&mut self, view: &wgpu::TextureView, game_state: &super::GameState) {
@@ -180,19 +187,21 @@ impl<'a> Scene {
                 (self.window_size.height - self.scene_size.height) / 2,
             )
         };
-        let font_size = 50.;
+        // let font_size = 50.;
+        let font_size = self.block_size as f32;
         let colour: Color = super::colours::YELLOW.into();
         let pos_x = (LEFT_MARGIN + GAME_AREA_WIDTH + SPACE) * self.block_size + left_margin;
         let pos_y = (TOP_MARGIN + y_blocks + SPACE) * self.block_size + top_margin;
         let section = Section::default()
             .add_text(Text::new(text).with_scale(font_size).with_color(colour))
             .with_bounds((
-                self.window_size.width as f32 / 2.0,
-                self.window_size.height as f32,
+                (GAME_AREA_WIDTH * self.block_size) as f32,
+                (GAME_AREA_HEIGHT * self.block_size) as f32,
             ))
             .with_layout(
-                Layout::default()
-                    .v_align(VerticalAlign::Center)
+                Layout::default_single_line()
+                    .h_align(HorizontalAlign::Left)
+                    .v_align(VerticalAlign::Top)
                     .line_breaker(BuiltInLineBreaker::AnyCharLineBreaker),
             )
             .with_screen_position((pos_x as f32, pos_y as f32))
