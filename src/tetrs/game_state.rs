@@ -34,7 +34,6 @@ impl GameState {
         &mut self,
         event_loop: &winit::event_loop::EventLoopProxy<GameEvent>,
     ) -> anyhow::Result<()> {
-        log::debug!("YARRAK");
         self.time_elapsed += 1;
         event_loop
             .send_event(GameEvent::Step)
