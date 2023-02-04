@@ -7,10 +7,11 @@ use wgpu_text::section::{
 
 use super::base::Base;
 use super::colours;
-use super::drawable::Geometry;
+use super::drawable::{Drawable, Geometry};
 use super::vertex::Vertex;
 use super::vertex::{ScreenCoord, ToVertices};
 use super::writer::Writer;
+use super::{game_state, game_state::Tetromino};
 
 pub const SCREEN_WIDTH: u32 = 30; // Blocks
 pub const SCREEN_HEIGHT: u32 = 30; // Blocks
@@ -83,6 +84,10 @@ impl<'a> Scene {
 
     pub fn render_next(&mut self, view: &wgpu::TextureView, game_state: &super::GameState) {
         self.write(&view, "next", SPACE * 1);
+        let blx = self
+            .next_tetromino_geom(&game_state::Eye)
+            .to_drawable(&self.base);
+        self.draw_blocks(view, blx);
     }
 
     pub fn render_score(&mut self, view: &wgpu::TextureView, game_state: &super::GameState) {
@@ -150,7 +155,10 @@ impl<'a> Scene {
 
     pub fn render_blocks(&self, view: &wgpu::TextureView, game_state: &super::GameState) {
         let blx = self.blocks(game_state).to_drawable(&self.base);
+        self.draw_blocks(view, blx);
+    }
 
+    fn draw_blocks(&self, view: &wgpu::TextureView, blx: Drawable) {
         let mut encoder = self
             .base
             .device
@@ -187,7 +195,7 @@ impl<'a> Scene {
                 (self.window_size.height - self.scene_size.height) / 2,
             )
         };
-        // let font_size = 50.;
+
         let font_size = self.block_size as f32;
         let colour: Color = super::colours::YELLOW.into();
         let pos_x = (LEFT_MARGIN + GAME_AREA_WIDTH + SPACE) * self.block_size + left_margin;
@@ -274,6 +282,40 @@ impl<'a> Scene {
         let vertices = coords.to_vertices(&self.scene_size, &self.window_size, colour);
 
         Geometry { indices, vertices }
+    }
+
+    fn next_tetromino_geom<const R: usize, const C: usize>(
+        &self,
+        tetromino: &Tetromino<R, C>,
+    ) -> Geometry {
+        let (ga_left, ga_top) = {
+            (
+                self.block_size * (LEFT_MARGIN + GAME_AREA_WIDTH + 2 * SPACE),
+                self.block_size * (BOTTOM_MARGIN + GAME_AREA_HEIGHT - 3 * SPACE),
+            )
+        };
+
+        let mut blx = Geometry::default();
+
+        let bs = self.block_size;
+        let m: u32 = 1;
+
+        let mut offsy = ga_top - bs;
+        for row in tetromino.shape {
+            let mut offsx = ga_left;
+            for _col in row {
+                let (b_left, b_top, b_right, b_bottom) =
+                    { (offsx + m, offsy + m, offsx + bs - m, offsy + bs - m) };
+
+                let g = self.rectangle(b_left, b_top, b_right, b_bottom, tetromino.colour);
+                blx += g;
+
+                offsx += bs;
+            }
+            offsy -= bs;
+        }
+
+        blx
     }
 
     fn blocks(&self, game_state: &super::GameState) -> Geometry {
