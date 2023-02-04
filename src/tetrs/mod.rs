@@ -12,6 +12,8 @@ use scene::{Frame, Scene};
 
 pub use game_state::GameEvent;
 
+const DELTA: u64 = 100;
+
 pub struct Tetrs {
     game_state: GameState,
     scene: Scene,
@@ -41,7 +43,7 @@ impl Tetrs {
     }
 
     pub fn step_time(&mut self) -> anyhow::Result<()> {
-        let delta = time::Duration::from_millis(250);
+        let delta = time::Duration::from_millis(DELTA);
         if self.last_stepped.elapsed() > delta {
             self.game_state.step_time(&self.event_loop)?;
             self.last_stepped = time::Instant::now();

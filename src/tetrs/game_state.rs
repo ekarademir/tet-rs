@@ -4,6 +4,7 @@ use super::{colours, colours::Colour};
 
 const NUM_ROWS: usize = 28;
 const NUM_COLS: usize = 12;
+const MAX_SPEED: u8 = 10;
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum BlockState {
@@ -19,9 +20,9 @@ pub enum BlockState {
 
 pub struct GameState {
     pub blocks: [[BlockState; NUM_COLS]; NUM_ROWS],
-    pub score: String,
-    pub level: String,
-    pub time_elapsed: u128,
+    pub score: u128,
+    pub level: u8,
+    pub time_elapsed: u8,
 }
 
 #[derive(Debug)]
@@ -34,11 +35,22 @@ impl GameState {
         &mut self,
         event_loop: &winit::event_loop::EventLoopProxy<GameEvent>,
     ) -> anyhow::Result<()> {
+        if self.time_elapsed > self.step_to_pass() {
+            self.time_elapsed = 0;
+            event_loop
+                .send_event(GameEvent::Step)
+                .context("Couldn't send GameEvent::Step")?;
+        }
         self.time_elapsed += 1;
-        event_loop
-            .send_event(GameEvent::Step)
-            .context("Couldn't send GameEvent::Step")?;
         Ok(())
+    }
+
+    fn step_to_pass(&self) -> u8 {
+        if self.level > 10 {
+            MAX_SPEED
+        } else {
+            MAX_SPEED - self.level
+        }
     }
 }
 
@@ -46,8 +58,8 @@ impl std::default::Default for GameState {
     fn default() -> Self {
         GameState {
             blocks: [[BlockState::Emp; NUM_COLS]; NUM_ROWS],
-            score: "0000".to_string(),
-            level: "000".to_string(),
+            score: 0,
+            level: 0,
             time_elapsed: 0,
         }
     }
