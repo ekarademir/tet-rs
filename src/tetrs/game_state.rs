@@ -64,7 +64,7 @@ impl GameState {
     fn remove(&mut self) {
         let mut new_blocks = [[BlockState::Emp; NUM_COLS]; UNRENDERED_ROWS + NUM_ROWS];
 
-        let mut copy_to = UNRENDERED_ROWS + NUM_ROWS - 1;
+        let mut copy_to = UNRENDERED_ROWS + NUM_ROWS;
         for row in self.blocks.iter().rev() {
             let unfilled = row
                 .iter()
@@ -72,8 +72,8 @@ impl GameState {
                 .reduce(|acc, x| acc && x)
                 .unwrap_or(false);
             if unfilled {
+                copy_to -= 1;
                 new_blocks[copy_to][..NUM_COLS].copy_from_slice(row);
-                copy_to += 1;
             }
         }
 
