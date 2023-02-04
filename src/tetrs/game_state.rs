@@ -1,5 +1,7 @@
 use std::str::FromStr;
 
+use super::colours::Colour;
+
 const NUM_ROWS: usize = 28;
 const NUM_COLS: usize = 12;
 
@@ -23,4 +25,9 @@ impl std::default::Default for GameState {
             level: "000".to_string(),
         }
     }
+}
+
+pub struct Tetromino<const R: usize, const C: usize> {
+    pub colour: Colour,
+    pub shape: [[BlockState; R]; C],
 }
