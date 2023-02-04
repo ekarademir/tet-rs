@@ -11,7 +11,7 @@ use super::drawable::{Drawable, Geometry};
 use super::vertex::Vertex;
 use super::vertex::{ScreenCoord, ToVertices};
 use super::writer::Writer;
-use super::{game_state, game_state::Tetromino};
+use super::{game_state, game_state::BlockState, game_state::Tetromino};
 
 pub const SCREEN_WIDTH: u32 = 30; // Blocks
 pub const SCREEN_HEIGHT: u32 = 30; // Blocks
@@ -85,7 +85,7 @@ impl<'a> Scene {
     pub fn render_next(&mut self, view: &wgpu::TextureView, game_state: &super::GameState) {
         self.write(&view, "next", SPACE * 1);
         let blx = self
-            .next_tetromino_geom(&game_state::Eye)
+            .next_tetromino_geom(&game_state::Ell)
             .to_drawable(&self.base);
         self.draw_blocks(view, blx);
     }
@@ -290,7 +290,7 @@ impl<'a> Scene {
     ) -> Geometry {
         let (ga_left, ga_top) = {
             (
-                self.block_size * (LEFT_MARGIN + GAME_AREA_WIDTH + 2 * SPACE),
+                self.block_size * (LEFT_MARGIN + GAME_AREA_WIDTH + 3 * SPACE / 2),
                 self.block_size * (BOTTOM_MARGIN + GAME_AREA_HEIGHT - 3 * SPACE),
             )
         };
@@ -303,12 +303,14 @@ impl<'a> Scene {
         let mut offsy = ga_top - bs;
         for row in tetromino.shape {
             let mut offsx = ga_left;
-            for _col in row {
+            for col in row {
                 let (b_left, b_top, b_right, b_bottom) =
                     { (offsx + m, offsy + m, offsx + bs - m, offsy + bs - m) };
 
-                let g = self.rectangle(b_left, b_top, b_right, b_bottom, tetromino.colour);
-                blx += g;
+                if col != BlockState::Emp {
+                    let g = self.rectangle(b_left, b_top, b_right, b_bottom, tetromino.colour);
+                    blx += g;
+                }
 
                 offsx += bs;
             }
@@ -338,7 +340,7 @@ impl<'a> Scene {
                 let (b_left, b_top, b_right, b_bottom) =
                     { (offsx + m, offsy + m, offsx + bs - m, offsy + bs - m) };
 
-                if col == super::game_state::BlockState::Filled {
+                if col == BlockState::Filled {
                     let g = self.rectangle(b_left, b_top, b_right, b_bottom, colours::ORANGE);
                     blx += g;
                 }
