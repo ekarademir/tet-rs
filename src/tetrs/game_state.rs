@@ -1,9 +1,11 @@
+use std::iter::zip;
+
 use anyhow::Context;
 
 use super::{colours, colours::Colour};
 
 const NUM_ROWS: usize = 28;
-pub const UNRENDERED_ROWS: usize = 28;
+pub const UNRENDERED_ROWS: usize = 4;
 const NUM_COLS: usize = 12;
 const MAX_SPEED: u8 = 10;
 
@@ -59,6 +61,46 @@ impl GameState {
         } else {
             MAX_SPEED - self.level
         }
+    }
+
+    fn can_move(&mut self, dx: i8, dy: i8) -> bool {
+        if let Some(current_tetromino) = self.current_tetromino.as_mut() {
+            let (width, height) = {
+                (
+                    current_tetromino.tetromino.shape[0].len() as i8,
+                    current_tetromino.tetromino.shape.len() as i8,
+                )
+            };
+
+            let (blocks_x, blocks_y) = {
+                (
+                    dx + current_tetromino.x as i8,
+                    dy + current_tetromino.y as i8,
+                )
+            };
+
+            // Check board bounds
+            if blocks_x + width >= NUM_COLS as i8
+                || blocks_y + height >= (NUM_ROWS + UNRENDERED_ROWS) as i8
+            {
+                return false;
+            }
+            if blocks_x < 0 {
+                return false;
+            }
+
+            let tetromino_last_line = current_tetromino.tetromino.shape.last().unwrap();
+            let blocks_row = &self.blocks[blocks_y as usize];
+            for col in zip(
+                blocks_row[blocks_x as usize..(blocks_x + width) as usize].iter(),
+                tetromino_last_line.iter(),
+            ) {
+                if col != (&BlockState::Emp, &BlockState::Emp) {
+                    return false;
+                }
+            }
+        }
+        true
     }
 
     fn remove(&mut self) {
