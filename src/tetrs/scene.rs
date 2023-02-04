@@ -50,7 +50,7 @@ impl<'a> Scene {
             window_size,
             scene_size: Frame::new(SCREEN_HEIGHT * block_size, SCREEN_WIDTH * block_size),
             block_size,
-            line_weight: 3,
+            line_weight: 12,
             writer,
             base,
         })
@@ -133,7 +133,7 @@ impl<'a> Scene {
                     view: &view,
                     resolve_target: None,
                     ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
+                        load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
                         store: true,
                     },
                 })],
@@ -197,7 +197,7 @@ impl<'a> Scene {
         };
 
         let font_size = self.block_size as f32;
-        let colour: Color = super::colours::YELLOW.into();
+        let colour: Color = super::colours::LIGHT_BLUE.into();
         let pos_x = (LEFT_MARGIN + GAME_AREA_WIDTH + SPACE) * self.block_size + left_margin;
         let pos_y = (TOP_MARGIN + y_blocks + SPACE) * self.block_size + top_margin;
         let section = Section::default()
