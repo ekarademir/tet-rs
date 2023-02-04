@@ -43,6 +43,7 @@ impl GameState {
         event_loop: &winit::event_loop::EventLoopProxy<GameEvent>,
     ) -> anyhow::Result<()> {
         if self.time_elapsed > self.step_to_pass() {
+            self.update_blocks();
             self.time_elapsed = 0;
             event_loop
                 .send_event(GameEvent::Step)
@@ -80,7 +81,7 @@ impl GameState {
     }
 
     fn update_blocks(&mut self) {
-        //
+        self.remove();
     }
 }
 
