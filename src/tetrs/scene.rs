@@ -338,13 +338,14 @@ impl<'a> Scene {
         let mut blx = Geometry::default();
 
         let mut offsy = ga_top - bs;
-        for row in game_state.blocks {
+        for row in &game_state.blocks[game_state::UNRENDERED_ROWS..] {
             let mut offsx = ga_left;
             for col in row {
                 let (b_left, b_top, b_right, b_bottom) =
                     { (offsx + m, offsy + m, offsx + bs - m, offsy + bs - m) };
 
-                if col != BlockState::Emp || col != BlockState::Unrendered {
+                // Ignore the part of the blocks where we use for injecting new tetrominos off-screen
+                if *col != BlockState::Emp || *col != BlockState::Unrendered {
                     let colour = match col {
                         BlockState::Arr => game_state::Arr.colour,
                         BlockState::Ell => game_state::Ell.colour,

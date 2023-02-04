@@ -3,7 +3,7 @@ use anyhow::Context;
 use super::{colours, colours::Colour};
 
 const NUM_ROWS: usize = 28;
-const UNRENDERED_ROWS: usize = 28;
+pub const UNRENDERED_ROWS: usize = 28;
 const NUM_COLS: usize = 12;
 const MAX_SPEED: u8 = 10;
 
@@ -20,7 +20,7 @@ pub enum BlockState {
 }
 
 pub struct GameState {
-    pub blocks: [[BlockState; NUM_COLS]; NUM_ROWS],
+    pub blocks: [[BlockState; NUM_COLS]; NUM_ROWS + UNRENDERED_ROWS],
     pub score: u128,
     pub level: u8,
     pub time_elapsed: u8,
@@ -61,8 +61,12 @@ impl GameState {
 
 impl std::default::Default for GameState {
     fn default() -> Self {
+        let mut blocks = [[BlockState::Emp; NUM_COLS]; UNRENDERED_ROWS + NUM_ROWS];
+        for x in 0..UNRENDERED_ROWS {
+            blocks[x] = [BlockState::Unrendered; NUM_COLS];
+        }
         GameState {
-            blocks: [[BlockState::Emp; NUM_COLS]; NUM_ROWS],
+            blocks,
             score: 0,
             level: 0,
             time_elapsed: 0,
