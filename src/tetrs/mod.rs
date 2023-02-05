@@ -138,5 +138,6 @@ mod colours;
 mod drawable;
 mod game_state;
 mod scene;
+mod tetromino;
 mod vertex;
 mod writer;

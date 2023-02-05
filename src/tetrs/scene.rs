@@ -8,13 +8,11 @@ use wgpu_text::section::{
 use super::base::Base;
 use super::colours;
 use super::drawable::{Drawable, Geometry};
+use super::game_state;
+use super::tetromino::{BlockState, CurrentTetromino, Tetromino};
 use super::vertex::Vertex;
 use super::vertex::{ScreenCoord, ToVertices};
 use super::writer::Writer;
-use super::{
-    game_state,
-    game_state::{BlockState, CurrentTetromino, Tetromino},
-};
 
 pub const SCREEN_WIDTH: u32 = 30; // Blocks
 pub const SCREEN_HEIGHT: u32 = 30; // Blocks
@@ -427,13 +425,13 @@ impl<'a> Scene {
                 // Ignore the part of the blocks where we use for injecting new tetrominos off-screen
                 if *col != BlockState::Emp {
                     let colour = match col {
-                        BlockState::Arr => game_state::Tetromino::arr().colour,
-                        BlockState::Ell => game_state::Tetromino::ell().colour,
-                        BlockState::Ess => game_state::Tetromino::ess().colour,
-                        BlockState::Eye => game_state::Tetromino::eye().colour,
-                        BlockState::Ohh => game_state::Tetromino::ohh().colour,
-                        BlockState::Tee => game_state::Tetromino::tee().colour,
-                        BlockState::Zee => game_state::Tetromino::zee().colour,
+                        BlockState::Arr => Tetromino::arr().colour,
+                        BlockState::Ell => Tetromino::ell().colour,
+                        BlockState::Ess => Tetromino::ess().colour,
+                        BlockState::Eye => Tetromino::eye().colour,
+                        BlockState::Ohh => Tetromino::ohh().colour,
+                        BlockState::Tee => Tetromino::tee().colour,
+                        BlockState::Zee => Tetromino::zee().colour,
                         _ => colours::UNRENDERED,
                     };
                     let g = self.rectangle(b_left, b_top, b_right, b_bottom, colour);
