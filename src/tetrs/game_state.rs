@@ -121,18 +121,17 @@ impl GameState {
     }
 
     fn can_move(&self, dx: i8, dy: i8) -> bool {
-        // if let Some(current_tetromino) = self.current_tetromino.as_ref() {
         let (width, height) = {
             (
-                current_tetromino.tetromino.shape[0].len() as i8,
-                current_tetromino.tetromino.shape.len() as i8,
+                self.current_tetromino.tetromino.shape[0].len() as i8,
+                self.current_tetromino.tetromino.shape.len() as i8,
             )
         };
 
         let (blocks_x, blocks_y) = {
             (
-                dx + current_tetromino.x as i8,
-                dy + current_tetromino.y as i8,
+                dx + self.current_tetromino.x as i8,
+                dy + self.current_tetromino.y as i8,
             )
         };
 
@@ -146,7 +145,7 @@ impl GameState {
             return false;
         }
 
-        let tetromino_last_line = current_tetromino.tetromino.shape.last().unwrap();
+        let tetromino_last_line = self.current_tetromino.tetromino.shape.last().unwrap();
         let blocks_row = &self.blocks[blocks_y as usize];
         for col in zip(
             blocks_row[blocks_x as usize..(blocks_x + width) as usize].iter(),
@@ -156,7 +155,6 @@ impl GameState {
                 return false;
             }
         }
-        // }
         true
     }
 
