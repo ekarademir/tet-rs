@@ -1,6 +1,6 @@
 use anyhow::Context;
 
-use super::tetromino::{BlockState, CurrentTetromino, Tetromino};
+use super::tetromino::{BlockState, CurrentTetromino};
 
 pub const NUM_ROWS: usize = 28;
 pub const NUM_COLS: usize = 12;
