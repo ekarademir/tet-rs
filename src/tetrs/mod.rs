@@ -59,11 +59,17 @@ impl Tetrs {
 
         self.scene.render_game(&view);
         self.scene.render_blocks(&view, &self.game_state);
-        self.scene.render_next(&view, &self.game_state);
+        self.scene.render_next_tetromino(&view, &self.game_state);
+        self.scene.render_current_tetromino(&view, &self.game_state);
         self.scene.render_score(&view, &self.game_state);
         self.scene.render_level(&view, &self.game_state);
-        self.scene
-            .render_debug(&view, format!("{:?}", self.game_state.time_elapsed));
+        self.scene.render_debug(
+            &view,
+            format!(
+                "T: {:?} S: {:?}",
+                self.game_state.time_elapsed, self.game_state.steps_elapsed
+            ),
+        );
 
         frame.present();
         Ok(())

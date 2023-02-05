@@ -5,8 +5,8 @@ use anyhow::Context;
 use super::{colours, colours::Colour};
 
 pub const UNRENDERED_ROWS: usize = 4;
-const NUM_ROWS: usize = 28;
-const NUM_COLS: usize = 12;
+pub const NUM_ROWS: usize = 28;
+pub const NUM_COLS: usize = 12;
 const MAX_SPEED: u8 = 10;
 
 #[derive(Clone, Copy, PartialEq)]
@@ -59,7 +59,7 @@ impl CurrentTetromino {
         tetro.into()
     }
     pub fn down(&mut self) {
-        self.y -= 1;
+        self.y += 1;
     }
 }
 
@@ -72,8 +72,10 @@ pub struct GameState {
     pub blocks: [[BlockState; NUM_COLS]; NUM_ROWS + UNRENDERED_ROWS],
     pub score: u128,
     pub level: u8,
-    pub time_elapsed: u8,
     pub current_tetromino: CurrentTetromino,
+    pub next_tetromino: CurrentTetromino,
+    pub time_elapsed: u8,
+    pub steps_elapsed: u128,
 }
 
 impl std::default::Default for GameState {
@@ -83,7 +85,10 @@ impl std::default::Default for GameState {
             score: 0,
             level: 0,
             time_elapsed: 0,
-            current_tetromino: CurrentTetromino::next_one(),
+            steps_elapsed: 0,
+            // current_tetromino: CurrentTetromino::next_one(),
+            current_tetromino: Tetromino::eye().into(),
+            next_tetromino: CurrentTetromino::next_one(),
         }
     }
 }
@@ -101,6 +106,7 @@ impl GameState {
                 .context("Couldn't send GameEvent::Step")?;
         }
         self.time_elapsed += 1;
+        self.steps_elapsed += 1;
         Ok(())
     }
 
@@ -178,7 +184,8 @@ impl GameState {
     }
 
     fn update_blocks(&mut self) {
-        self.remove();
+        // self.remove();
+        self.current_tetromino.down();
     }
 }
 

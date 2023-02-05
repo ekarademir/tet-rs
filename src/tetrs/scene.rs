@@ -11,12 +11,16 @@ use super::drawable::{Drawable, Geometry};
 use super::vertex::Vertex;
 use super::vertex::{ScreenCoord, ToVertices};
 use super::writer::Writer;
-use super::{game_state, game_state::BlockState, game_state::Tetromino};
+use super::{
+    game_state,
+    game_state::{BlockState, CurrentTetromino, Tetromino},
+};
 
 pub const SCREEN_WIDTH: u32 = 30; // Blocks
 pub const SCREEN_HEIGHT: u32 = 30; // Blocks
-pub const GAME_AREA_WIDTH: u32 = 12; // Blocks
-pub const GAME_AREA_HEIGHT: u32 = 28; // Blocks
+pub const GAME_AREA_WIDTH: u32 = game_state::NUM_COLS as u32; // Blocks
+pub const GAME_AREA_HEIGHT: u32 = game_state::NUM_ROWS as u32; // Blocks
+pub const UNRENDERED_HEIGHT: u32 = game_state::UNRENDERED_ROWS as u32; // Blocks
 pub const LEFT_MARGIN: u32 = 1; // Blocks
 pub const TOP_MARGIN: u32 = 1; // Blocks
 pub const SPACE: u32 = 1; // Blocks
@@ -82,10 +86,25 @@ impl<'a> Scene {
         );
     }
 
-    pub fn render_next(&mut self, view: &wgpu::TextureView, game_state: &super::GameState) {
+    pub fn render_next_tetromino(
+        &mut self,
+        view: &wgpu::TextureView,
+        game_state: &super::GameState,
+    ) {
         self.write(&view, "next", SPACE * 1);
         let blx = self
-            .next_tetromino_geom(&game_state::Tetromino::ell())
+            .next_tetromino_geom(&game_state.next_tetromino.tetromino)
+            .to_drawable(&self.base);
+        self.draw_blocks(view, blx);
+    }
+
+    pub fn render_current_tetromino(
+        &mut self,
+        view: &wgpu::TextureView,
+        game_state: &super::GameState,
+    ) {
+        let blx = self
+            .current_tetromino_geom(&game_state.current_tetromino)
             .to_drawable(&self.base);
         self.draw_blocks(view, blx);
     }
@@ -310,6 +329,67 @@ impl<'a> Scene {
 
                 if *col != BlockState::Emp {
                     let g = self.rectangle(b_left, b_top, b_right, b_bottom, tetromino.colour);
+                    blx += g;
+                }
+
+                offsx += bs;
+            }
+            offsy -= bs;
+        }
+
+        blx
+    }
+
+    fn current_tetromino_geom(&self, current_tetromino: &CurrentTetromino) -> Geometry {
+        // Determine the bounding box for the game area
+        let (ga_left, ga_top) = {
+            (
+                self.block_size * (LEFT_MARGIN),
+                self.block_size * (BOTTOM_MARGIN + GAME_AREA_HEIGHT),
+            )
+        };
+
+        // Some bin to collect all gemotries, by default an empty one.
+        let mut blx = Geometry::default();
+
+        // Block related drawing dimentions.
+        let bs = self.block_size;
+        let m: u32 = 1;
+
+        // Determining how much of the tetromino should be in view
+        // `current_tetromino.y` is already rebated for the height of the tetromino we first add it back.
+        // Then the resulting height should be rebated for the `UNRENDERED_HEIGHT`, since
+        // tetrominos start from outside of the "rendered" box, this then gives the amount
+        // of tetromino `in_view`.
+        // Finally we return the index bounds of the rows of the shape that should be rendered.
+        let (in_view_row_start, in_view_row_end, in_view): (usize, usize, usize) = {
+            let shape_height = current_tetromino.tetromino.shape.len();
+            let in_view = current_tetromino.y + shape_height - UNRENDERED_HEIGHT as usize;
+            if in_view < shape_height {
+                (shape_height - in_view, shape_height, in_view)
+            } else {
+                (0, shape_height, shape_height)
+            }
+        };
+
+        let dy = current_tetromino.y as u32;
+        let dh = in_view as u32;
+
+        let mut offsy = ga_top - bs * dy + bs * dh;
+        for row in &current_tetromino.tetromino.shape[in_view_row_start..in_view_row_end] {
+            let mut offsx = ga_left + bs * (current_tetromino.x as u32);
+            for col in row {
+                let (b_left, b_top, b_right, b_bottom) =
+                    { (offsx + m, offsy + m, offsx + bs - m, offsy + bs - m) };
+
+                if *col != BlockState::Emp {
+                    let g = self.rectangle(
+                        b_left,
+                        b_top,
+                        b_right,
+                        b_bottom,
+                        current_tetromino.tetromino.colour,
+                    );
                     blx += g;
                 }
 
