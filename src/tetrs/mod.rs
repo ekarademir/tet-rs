@@ -40,6 +40,11 @@ impl Tetrs {
         })
     }
 
+    pub fn handle_up(&mut self) {
+        self.game_state.tetromino_rotate();
+        self.render().unwrap();
+    }
+
     pub fn handle_down(&mut self) {
         self.game_state.tetromino_down();
         self.render().unwrap();
@@ -114,7 +119,7 @@ pub async fn run(window: Window, event_loop: EventLoop<GameEvent>, mut tetrs: Te
                     ..
                 } => match virtual_code {
                     VirtualKeyCode::Escape => *control_flow = ControlFlow::Exit,
-                    VirtualKeyCode::Up => log::debug!("UP"),
+                    VirtualKeyCode::Up => tetrs.handle_up(),
                     VirtualKeyCode::Down => tetrs.handle_down(),
                     VirtualKeyCode::Left => tetrs.handle_left(),
                     VirtualKeyCode::Right => tetrs.handle_right(),

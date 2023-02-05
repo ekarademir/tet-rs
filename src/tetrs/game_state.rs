@@ -73,7 +73,9 @@ impl GameState {
     }
 
     pub fn tetromino_rotate(&mut self) {
-        //
+        if self.can_rotate() {
+            self.current_tetromino.tetromino.rotate();
+        }
     }
 
     fn step_to_pass(&self) -> u8 {
@@ -89,6 +91,12 @@ impl GameState {
         let x = tetro.x as i8 + dx;
         tetro.x = if x >= 0 { x as usize } else { 0 };
         tetro.y += dy;
+        self.can_do(&tetro)
+    }
+
+    fn can_rotate(&self) -> bool {
+        let mut tetro = self.current_tetromino.clone();
+        tetro.tetromino.rotate();
         self.can_do(&tetro)
     }
 
