@@ -348,6 +348,7 @@ impl<'a> Scene {
                         BlockState::Ell => game_state::Tetromino::ell().colour,
                         BlockState::Ess => game_state::Tetromino::ess().colour,
                         BlockState::Eye => game_state::Tetromino::eye().colour,
+                        BlockState::Ohh => game_state::Tetromino::ohh().colour,
                         BlockState::Tee => game_state::Tetromino::tee().colour,
                         BlockState::Zee => game_state::Tetromino::zee().colour,
                         _ => colours::UNRENDERED,

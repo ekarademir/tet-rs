@@ -12,6 +12,7 @@ bytemuck = {version = "1.13.0", features = ["derive"]}
 glyph_brush = "0.7.5"
 log = "0.4.17"
 pollster = "0.2.5"
+random-number = "0.1.8"
 simple_logger = "4.0.0"
 wgpu = "0.14.2"
 wgpu_text = "0.6.5"

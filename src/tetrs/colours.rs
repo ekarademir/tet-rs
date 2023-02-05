@@ -33,6 +33,7 @@ pub const GRAY: Colour = convert(0x7B8FA1);
 pub const RED: Colour = convert(0xD61355);
 pub const BROWN: Colour = convert(0xB99B6B);
 pub const LIGHT_BLUE: Colour = convert(0x93BFCF);
+pub const NAVY_BLUE: Colour = convert(0x362FD9);
 
 pub const UNRENDERED: Colour = Colour {
     red: 0,
