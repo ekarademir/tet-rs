@@ -120,7 +120,7 @@ impl GameState {
         if self.level > 10 {
             MAX_SPEED
         } else {
-            (MAX_SPEED - self.level) / 8
+            MAX_SPEED - self.level
         }
     }
 
