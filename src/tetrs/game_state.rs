@@ -56,7 +56,9 @@ impl GameState {
         if self.can_move(0, 1) {
             self.current_tetromino.down();
         } else {
-            // Commit
+            self.commit();
+            self.current_tetromino = self.next_tetromino.clone();
+            self.next_tetromino = CurrentTetromino::next_one();
         }
     }
 
@@ -75,6 +77,21 @@ impl GameState {
     pub fn tetromino_rotate(&mut self) {
         if self.can_rotate() {
             self.current_tetromino.tetromino.rotate();
+        }
+    }
+
+    fn commit(&mut self) {
+        let (t_width, t_height) = (
+            self.current_tetromino.tetromino.shape[0].len(),
+            self.current_tetromino.tetromino.shape.len(),
+        );
+
+        let (start_x, start_y) = (self.current_tetromino.x, self.current_tetromino.y as usize);
+
+        for (y, row) in (start_y..start_y + t_height).enumerate() {
+            for (x, col) in (start_x..start_x + t_width).enumerate() {
+                self.blocks[row][col] = self.current_tetromino.tetromino.shape[y][x];
+            }
         }
     }
 
