@@ -1,5 +1,3 @@
-use std::iter::zip;
-
 use anyhow::Context;
 
 use super::{colours, colours::Colour};
@@ -45,6 +43,7 @@ const NEXT_TETRO_BAG: [BlockState; 7] = [
     BlockState::Zee,
 ];
 
+#[derive(Clone)]
 pub struct CurrentTetromino {
     pub tetromino: Tetromino,
     pub x: usize,
@@ -67,7 +66,8 @@ impl CurrentTetromino {
     }
 
     pub fn left(&mut self) {
-        self.x -= 1;
+        let newx = self.x as i8 - 1;
+        self.x = if newx >= 0 { newx as usize } else { 0 };
     }
 }
 
@@ -150,20 +150,23 @@ impl GameState {
     }
 
     fn can_move(&self, dx: i8, dy: i8) -> bool {
+        let mut tetro = self.current_tetromino.clone();
+        let x = tetro.x as i8 + dx;
+        tetro.x = if x >= 0 { x as usize } else { 0 };
+        tetro.y += dy;
+        self.can_do(&tetro)
+    }
+
+    fn can_do(&self, ctetro: &CurrentTetromino) -> bool {
         let (tetro_width, tetro_height) = {
             (
-                self.current_tetromino.tetromino.shape[0].len() as i8,
-                self.current_tetromino.tetromino.shape.len() as i8,
+                ctetro.tetromino.shape[0].len() as i8,
+                ctetro.tetromino.shape.len() as i8,
             )
         };
 
         // with the movement
-        let (tetro_blocks_x, tetro_blocks_y) = {
-            (
-                dx + self.current_tetromino.x as i8,
-                dy + self.current_tetromino.y,
-            )
-        };
+        let (tetro_blocks_x, tetro_blocks_y) = (ctetro.x as i8, ctetro.y);
 
         let (board_width, board_height) = (NUM_COLS as i8, NUM_ROWS as i8);
         let (board_x, board_y) = (0, 0);
@@ -211,7 +214,7 @@ impl GameState {
         {
             for (dcol, block) in row[board_col_start..board_col_end].iter().enumerate() {
                 //
-                let tetro_block = &self.current_tetromino.tetromino.shape[drow][dcol];
+                let tetro_block = &ctetro.tetromino.shape[drow][dcol];
                 if *tetro_block != BlockState::Emp && *block != BlockState::Emp {
                     return false;
                 }
@@ -245,6 +248,7 @@ impl GameState {
     }
 }
 
+#[derive(Clone)]
 pub struct Tetromino {
     /// Colour associated with blocks of this tetromino
     pub colour: Colour,
