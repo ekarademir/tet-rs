@@ -92,11 +92,11 @@ impl Into<CurrentTetromino> for Tetromino {
 
 impl Tetromino {
     pub fn rotate(&mut self) {
-        let (curr_height, curr_width) = (self.shape.len(), self.shape[0].len());
-        let mut new_shape = vec![vec![BlockState::Emp; curr_height]; curr_width];
+        let (height, width) = (self.shape.len(), self.shape[0].len());
+        let mut new_shape = vec![vec![BlockState::Emp; height]; width];
         for (row_idx, row) in self.shape.iter().enumerate() {
             for (col_idx, col) in row.iter().enumerate() {
-                new_shape[col_idx][row_idx] = *col;
+                new_shape[width - col_idx - 1][row_idx] = *col;
             }
         }
         self.shape = new_shape;
