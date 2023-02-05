@@ -57,8 +57,17 @@ impl CurrentTetromino {
         let tetro = NEXT_TETRO_BAG[next_idx].to_tetromino();
         tetro.into()
     }
+
     pub fn down(&mut self) {
         self.y += 1;
+    }
+
+    pub fn right(&mut self) {
+        self.x += 1;
+    }
+
+    pub fn left(&mut self) {
+        self.x -= 1;
     }
 }
 
@@ -114,6 +123,26 @@ impl GameState {
         } else {
             // Commit
         }
+    }
+
+    pub fn tetromino_right(&mut self) {
+        if self.can_move(1, 0) {
+            self.current_tetromino.right();
+        } else {
+            // Commit
+        }
+    }
+
+    pub fn tetromino_left(&mut self) {
+        if self.can_move(-1, 0) {
+            self.current_tetromino.left();
+        } else {
+            // Commit
+        }
+    }
+
+    pub fn tetromino_rotate(&mut self) {
+        //
     }
 
     fn step_to_pass(&self) -> u8 {

@@ -40,6 +40,21 @@ impl Tetrs {
         })
     }
 
+    pub fn handle_down(&mut self) {
+        self.game_state.tetromino_down();
+        self.render().unwrap();
+    }
+
+    pub fn handle_right(&mut self) {
+        self.game_state.tetromino_right();
+        self.render().unwrap();
+    }
+
+    pub fn handle_left(&mut self) {
+        self.game_state.tetromino_left();
+        self.render().unwrap();
+    }
+
     pub fn resize(&mut self, size: Frame) {
         self.scene.resize(&size);
     }
@@ -100,10 +115,9 @@ pub async fn run(window: Window, event_loop: EventLoop<GameEvent>, mut tetrs: Te
                 } => match virtual_code {
                     VirtualKeyCode::Escape => *control_flow = ControlFlow::Exit,
                     VirtualKeyCode::Up => log::debug!("UP"),
-                    VirtualKeyCode::Down => log::debug!("DOWN"),
-                    VirtualKeyCode::Left => log::debug!("LEFT"),
-                    VirtualKeyCode::Right => log::debug!("RIGHT"),
-                    VirtualKeyCode::Space => log::debug!("SPACE"),
+                    VirtualKeyCode::Down => tetrs.handle_down(),
+                    VirtualKeyCode::Left => tetrs.handle_left(),
+                    VirtualKeyCode::Right => tetrs.handle_right(),
                     _ => {}
                 },
                 _ => {}
