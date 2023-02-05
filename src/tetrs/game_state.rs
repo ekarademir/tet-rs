@@ -128,16 +128,12 @@ impl GameState {
     pub fn tetromino_right(&mut self) {
         if self.can_move(1, 0) {
             self.current_tetromino.right();
-        } else {
-            // Commit
         }
     }
 
     pub fn tetromino_left(&mut self) {
         if self.can_move(-1, 0) {
             self.current_tetromino.left();
-        } else {
-            // Commit
         }
     }
 
