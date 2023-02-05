@@ -2,7 +2,7 @@ use std::time::{self, Instant};
 
 use anyhow::Context;
 use winit::{
-    event::{Event, WindowEvent},
+    event::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent},
     event_loop::{ControlFlow, EventLoop, EventLoopProxy},
     window::Window,
 };
@@ -19,6 +19,7 @@ pub struct Tetrs {
     scene: Scene,
     event_loop: EventLoopProxy<GameEvent>,
     last_stepped: time::Instant,
+    debug_msg: String,
 }
 
 impl Tetrs {
@@ -35,6 +36,7 @@ impl Tetrs {
             scene,
             event_loop,
             last_stepped: Instant::now(),
+            debug_msg: String::new(),
         })
     }
 
@@ -51,6 +53,10 @@ impl Tetrs {
         Ok(())
     }
 
+    pub fn set_debug(&mut self, msg: String) {
+        self.debug_msg = msg;
+    }
+
     pub fn render(&mut self) -> anyhow::Result<()> {
         let frame = self.scene.get_next_frame();
         let view = frame
@@ -63,13 +69,7 @@ impl Tetrs {
         self.scene.render_current_tetromino(&view, &self.game_state);
         self.scene.render_score(&view, &self.game_state);
         self.scene.render_level(&view, &self.game_state);
-        self.scene.render_debug(
-            &view,
-            format!(
-                "T: {:?} S: {:?}",
-                self.game_state.time_elapsed, self.game_state.steps_elapsed
-            ),
-        );
+        self.scene.render_debug(&view, &self.debug_msg);
 
         frame.present();
         Ok(())
@@ -83,20 +83,34 @@ pub async fn run(window: Window, event_loop: EventLoop<GameEvent>, mut tetrs: Te
         tetrs.step_time().unwrap();
 
         match event {
-            Event::WindowEvent {
-                event: WindowEvent::Resized(size),
-                ..
-            } => {
-                tetrs.resize(size);
-                window.request_redraw();
-            }
+            Event::WindowEvent { event, .. } => match event {
+                WindowEvent::Resized(size) => {
+                    tetrs.resize(size);
+                    window.request_redraw();
+                }
+                WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
+                WindowEvent::KeyboardInput {
+                    input:
+                        KeyboardInput {
+                            virtual_keycode: Some(virtual_code),
+                            state: ElementState::Pressed,
+                            ..
+                        },
+                    ..
+                } => match virtual_code {
+                    VirtualKeyCode::Escape => *control_flow = ControlFlow::Exit,
+                    VirtualKeyCode::Up => log::debug!("UP"),
+                    VirtualKeyCode::Down => log::debug!("DOWN"),
+                    VirtualKeyCode::Left => log::debug!("LEFT"),
+                    VirtualKeyCode::Right => log::debug!("RIGHT"),
+                    VirtualKeyCode::Space => log::debug!("SPACE"),
+                    _ => {}
+                },
+                _ => {}
+            },
             Event::RedrawRequested(_) => {
                 tetrs.render().unwrap();
             }
-            Event::WindowEvent {
-                event: WindowEvent::CloseRequested,
-                ..
-            } => *control_flow = ControlFlow::Exit,
             Event::UserEvent(GameEvent::Step) => {
                 tetrs.render().unwrap();
             }

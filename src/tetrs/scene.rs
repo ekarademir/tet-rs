@@ -118,7 +118,7 @@ impl<'a> Scene {
         self.write(&view, text.as_str(), SPACE * 14);
     }
 
-    pub fn render_debug(&mut self, view: &wgpu::TextureView, to_dbg: String) {
+    pub fn render_debug(&mut self, view: &wgpu::TextureView, to_dbg: &String) {
         self.write(&view, &to_dbg.as_str(), SPACE * 20);
     }
 
