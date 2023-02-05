@@ -20,7 +20,6 @@ pub const SCREEN_WIDTH: u32 = 30; // Blocks
 pub const SCREEN_HEIGHT: u32 = 30; // Blocks
 pub const GAME_AREA_WIDTH: u32 = game_state::NUM_COLS as u32; // Blocks
 pub const GAME_AREA_HEIGHT: u32 = game_state::NUM_ROWS as u32; // Blocks
-pub const UNRENDERED_HEIGHT: u32 = game_state::UNRENDERED_ROWS as u32; // Blocks
 pub const LEFT_MARGIN: u32 = 1; // Blocks
 pub const TOP_MARGIN: u32 = 1; // Blocks
 pub const SPACE: u32 = 1; // Blocks
@@ -362,20 +361,24 @@ impl<'a> Scene {
         // tetrominos start from outside of the "rendered" box, this then gives the amount
         // of tetromino `in_view`.
         // Finally we return the index bounds of the rows of the shape that should be rendered.
+        let shape_height = current_tetromino.tetromino.shape.len() as i8;
         let (in_view_row_start, in_view_row_end, in_view): (usize, usize, usize) = {
-            let shape_height = current_tetromino.tetromino.shape.len();
-            let in_view = current_tetromino.y + shape_height - UNRENDERED_HEIGHT as usize;
+            let in_view = current_tetromino.y + shape_height;
             if in_view < shape_height {
-                (shape_height - in_view, shape_height, in_view)
+                (
+                    (shape_height - in_view) as usize,
+                    shape_height as usize,
+                    in_view as usize,
+                )
             } else {
-                (0, shape_height, shape_height)
+                (0, shape_height as usize, shape_height as usize)
             }
         };
 
-        let dy = current_tetromino.y as u32;
-        let dh = in_view as u32;
+        let dy = in_view as u32;
+        let dh = (current_tetromino.y + shape_height) as u32;
 
-        let mut offsy = ga_top - bs * dy + bs * dh;
+        let mut offsy = ga_top - bs * (dh - dy + 1);
         for row in &current_tetromino.tetromino.shape[in_view_row_start..in_view_row_end] {
             let mut offsx = ga_left + bs * (current_tetromino.x as u32);
             for col in row {
@@ -395,7 +398,7 @@ impl<'a> Scene {
 
                 offsx += bs;
             }
-            offsy -= bs;
+            offsy = if offsy > 0 { offsy - bs } else { offsy };
         }
 
         blx
@@ -415,7 +418,7 @@ impl<'a> Scene {
         let mut blx = Geometry::default();
 
         let mut offsy = ga_top - bs;
-        for row in &game_state.blocks[game_state::UNRENDERED_ROWS..] {
+        for row in &game_state.blocks[..] {
             let mut offsx = ga_left;
             for col in row {
                 let (b_left, b_top, b_right, b_bottom) =

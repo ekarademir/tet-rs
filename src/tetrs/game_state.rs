@@ -4,7 +4,6 @@ use anyhow::Context;
 
 use super::{colours, colours::Colour};
 
-pub const UNRENDERED_ROWS: usize = 4;
 pub const NUM_ROWS: usize = 28;
 pub const NUM_COLS: usize = 12;
 const MAX_SPEED: u8 = 10;
@@ -49,7 +48,7 @@ const NEXT_TETRO_BAG: [BlockState; 7] = [
 pub struct CurrentTetromino {
     pub tetromino: Tetromino,
     pub x: usize,
-    pub y: usize,
+    pub y: i8,
 }
 
 impl CurrentTetromino {
@@ -69,7 +68,7 @@ pub enum GameEvent {
 }
 
 pub struct GameState {
-    pub blocks: [[BlockState; NUM_COLS]; NUM_ROWS + UNRENDERED_ROWS],
+    pub blocks: [[BlockState; NUM_COLS]; NUM_ROWS],
     pub score: u128,
     pub level: u8,
     pub current_tetromino: CurrentTetromino,
@@ -81,13 +80,12 @@ pub struct GameState {
 impl std::default::Default for GameState {
     fn default() -> Self {
         GameState {
-            blocks: [[BlockState::Emp; NUM_COLS]; UNRENDERED_ROWS + NUM_ROWS],
+            blocks: [[BlockState::Emp; NUM_COLS]; NUM_ROWS],
             score: 0,
             level: 0,
             time_elapsed: 0,
             steps_elapsed: 0,
-            // current_tetromino: CurrentTetromino::next_one(),
-            current_tetromino: Tetromino::eye().into(),
+            current_tetromino: CurrentTetromino::next_one(),
             next_tetromino: CurrentTetromino::next_one(),
         }
     }
@@ -111,7 +109,7 @@ impl GameState {
     }
 
     pub fn tetromino_down(&mut self) {
-        if self.can_move(0, -1) {
+        if self.can_move(0, 1) {
             self.current_tetromino.down();
         } else {
             // Commit
@@ -122,52 +120,85 @@ impl GameState {
         if self.level > 10 {
             MAX_SPEED
         } else {
-            MAX_SPEED - self.level
+            (MAX_SPEED - self.level) / 8
         }
     }
 
     fn can_move(&self, dx: i8, dy: i8) -> bool {
-        let (width, height) = {
+        let (tetro_width, tetro_height) = {
             (
                 self.current_tetromino.tetromino.shape[0].len() as i8,
                 self.current_tetromino.tetromino.shape.len() as i8,
             )
         };
 
-        let (blocks_x, blocks_y) = {
+        // with the movement
+        let (tetro_blocks_x, tetro_blocks_y) = {
             (
                 dx + self.current_tetromino.x as i8,
-                dy + self.current_tetromino.y as i8,
+                dy + self.current_tetromino.y,
             )
         };
 
+        let (board_width, board_height) = (NUM_COLS as i8, NUM_ROWS as i8);
+        let (board_x, board_y) = (0, 0);
+
         // Check board bounds
-        if blocks_x + width >= NUM_COLS as i8
-            || blocks_y + height >= (NUM_ROWS + UNRENDERED_ROWS) as i8
+        if tetro_blocks_x < board_x
+            || tetro_blocks_x + tetro_width > board_x + board_width
+            || tetro_blocks_y + tetro_height < board_y // Rebate the off screen starting
+            || tetro_blocks_y + tetro_height > board_y + board_height
         {
             return false;
         }
-        if blocks_x < 0 {
-            return false;
-        }
 
-        let tetromino_last_line = self.current_tetromino.tetromino.shape.last().unwrap();
-        let blocks_row = &self.blocks[blocks_y as usize];
-        for col in zip(
-            blocks_row[blocks_x as usize..(blocks_x + width) as usize].iter(),
-            tetromino_last_line.iter(),
-        ) {
-            if col != (&BlockState::Emp, &BlockState::Emp) {
-                return false;
+        // Check if it intersects with the board
+        // Visible piece of the tetromino
+        let (tetro_row_start, tetro_row_end) = {
+            let in_view = tetro_blocks_y + tetro_height;
+            if in_view < tetro_height {
+                ((tetro_height - in_view) as usize, tetro_height as usize)
+            } else {
+                (0, tetro_height as usize)
+            }
+        };
+
+        // Intersected part of the board
+        let (board_row_start, board_row_end) = (
+            (tetro_blocks_y + tetro_height) as usize,
+            (tetro_blocks_y + tetro_height) as usize + tetro_row_end - tetro_row_start,
+        );
+
+        let board_row_end = if board_row_end < NUM_ROWS {
+            (tetro_blocks_y + tetro_height) as usize + tetro_row_end - tetro_row_start
+        } else {
+            NUM_ROWS
+        };
+
+        let (board_col_start, board_col_end) = (
+            tetro_blocks_x as usize,
+            (tetro_blocks_x + tetro_width) as usize,
+        );
+
+        for (drow, row) in self.blocks[board_row_start..board_row_end]
+            .iter()
+            .enumerate()
+        {
+            for (dcol, block) in row[board_col_start..board_col_end].iter().enumerate() {
+                //
+                let tetro_block = &self.current_tetromino.tetromino.shape[drow][dcol];
+                if *tetro_block != BlockState::Emp && *block != BlockState::Emp {
+                    return false;
+                }
             }
         }
         true
     }
 
     fn remove(&mut self) {
-        let mut new_blocks = [[BlockState::Emp; NUM_COLS]; UNRENDERED_ROWS + NUM_ROWS];
+        let mut new_blocks = [[BlockState::Emp; NUM_COLS]; NUM_ROWS];
 
-        let mut copy_to = UNRENDERED_ROWS + NUM_ROWS;
+        let mut copy_to = NUM_ROWS;
         for row in self.blocks.iter().rev() {
             let unfilled = row
                 .iter()
@@ -185,7 +216,7 @@ impl GameState {
 
     fn update_blocks(&mut self) {
         // self.remove();
-        self.current_tetromino.down();
+        self.tetromino_down();
     }
 }
 
@@ -195,8 +226,8 @@ pub struct Tetromino {
     /// A bounding box of blocks that has the shape filled in with coloured blocks
     pub shape: Vec<Vec<BlockState>>,
     /// Padding from the top of the board so that bottom of the tetromino is just
-    /// above the visible part. Basically `UNRENDERED_ROWS - tetromino_height`.
-    pub starting_pos_y: usize,
+    /// above the visible part. Basically `- tetromino_height`.
+    pub starting_pos_y: i8,
     /// Starting positin in the horizontal.
     /// Basically `(NUM_COLS - tetromino_width) / 2`.
     pub starting_pos_x: usize,
@@ -226,7 +257,7 @@ impl Tetromino {
                 vec![BlockState::Arr, BlockState::Emp],
                 vec![BlockState::Arr, BlockState::Emp],
             ],
-            starting_pos_y: UNRENDERED_ROWS - 3,
+            starting_pos_y: -3,
             starting_pos_x: (NUM_COLS - 2) / 2,
         }
     }
@@ -244,7 +275,7 @@ impl Tetromino {
                 vec![BlockState::Ell, BlockState::Emp],
                 vec![BlockState::Ell, BlockState::Ell],
             ],
-            starting_pos_y: UNRENDERED_ROWS - 3,
+            starting_pos_y: -3,
             starting_pos_x: (NUM_COLS - 2) / 2,
         }
     }
@@ -260,7 +291,7 @@ impl Tetromino {
                 vec![BlockState::Emp, BlockState::Ess, BlockState::Ess],
                 vec![BlockState::Ess, BlockState::Ess, BlockState::Emp],
             ],
-            starting_pos_y: UNRENDERED_ROWS - 2,
+            starting_pos_y: -2,
             starting_pos_x: (NUM_COLS - 3) / 2,
         }
     }
@@ -280,7 +311,7 @@ impl Tetromino {
                 vec![BlockState::Eye],
                 vec![BlockState::Eye],
             ],
-            starting_pos_y: UNRENDERED_ROWS - 4,
+            starting_pos_y: -4,
             starting_pos_x: (NUM_COLS - 1) / 2,
         }
     }
@@ -296,7 +327,7 @@ impl Tetromino {
                 vec![BlockState::Ohh, BlockState::Ohh],
                 vec![BlockState::Ohh, BlockState::Ohh],
             ],
-            starting_pos_y: UNRENDERED_ROWS - 2,
+            starting_pos_y: -2,
             starting_pos_x: (NUM_COLS - 2) / 2,
         }
     }
@@ -312,7 +343,7 @@ impl Tetromino {
                 vec![BlockState::Emp, BlockState::Tee, BlockState::Emp],
                 vec![BlockState::Tee, BlockState::Tee, BlockState::Tee],
             ],
-            starting_pos_y: UNRENDERED_ROWS - 2,
+            starting_pos_y: -2,
             starting_pos_x: (NUM_COLS - 3) / 2,
         }
     }
@@ -328,7 +359,7 @@ impl Tetromino {
                 vec![BlockState::Zee, BlockState::Zee, BlockState::Emp],
                 vec![BlockState::Emp, BlockState::Zee, BlockState::Zee],
             ],
-            starting_pos_y: UNRENDERED_ROWS - 2,
+            starting_pos_y: -2,
             starting_pos_x: (NUM_COLS - 3) / 2,
         }
     }
