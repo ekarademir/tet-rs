@@ -12,7 +12,7 @@ use scene::{Frame, Scene};
 
 pub use game_state::GameEvent;
 
-const DELTA: u64 = 100;
+const DELTA: u64 = 17;
 
 pub struct Tetrs {
     game_state: GameState,

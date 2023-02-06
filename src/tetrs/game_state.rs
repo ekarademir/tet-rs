@@ -6,8 +6,8 @@ use super::tetromino::{BlockState, CurrentTetromino};
 
 pub const NUM_ROWS: usize = 28;
 pub const NUM_COLS: usize = 12;
-const MAX_SPEED: u8 = 25;
-const MAX_LEVEL: u8 = 20;
+const MAX_SPEED: u8 = 42;
+const MAX_LEVEL: u8 = 40;
 const SCORE_PER_LEVEL: u128 = 1;
 
 #[derive(Debug)]
@@ -84,6 +84,14 @@ impl GameState {
         }
     }
 
+    pub fn current_speed(&self) -> u8 {
+        if self.level > MAX_LEVEL {
+            MAX_SPEED - MAX_LEVEL
+        } else {
+            MAX_SPEED - self.level
+        }
+    }
+
     fn commit(&mut self) {
         let (t_width, t_height) = (
             self.current_tetromino.tetromino.shape[0].len(),
@@ -99,14 +107,6 @@ impl GameState {
                     self.blocks[row][col] = self.current_tetromino.tetromino.shape[y][x];
                 }
             }
-        }
-    }
-
-    fn current_speed(&self) -> u8 {
-        if self.level > MAX_LEVEL {
-            MAX_SPEED
-        } else {
-            MAX_SPEED - self.level
         }
     }
 
@@ -217,6 +217,8 @@ impl GameState {
         if num_removed > 0 {
             self.score += num_removed as u128;
         }
+
+        self.update_level();
     }
 
     fn update_level(&mut self) {
@@ -227,6 +229,5 @@ impl GameState {
         self.tetromino_down();
         let n = self.remove_lines();
         self.update_score(n);
-        self.update_level();
     }
 }
