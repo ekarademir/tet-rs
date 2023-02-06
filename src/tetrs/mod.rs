@@ -4,6 +4,7 @@ use anyhow::Context;
 use winit::{
     event::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent},
     event_loop::{ControlFlow, EventLoop, EventLoopProxy},
+    monitor::VideoMode,
     window::{Fullscreen, Window},
 };
 
@@ -14,6 +15,7 @@ const DELTA: u64 = 17;
 
 #[derive(PartialEq)]
 enum TetrsState {
+    Bootstrapped,
     Running,
     Paused,
 }
@@ -22,6 +24,7 @@ enum TetrsState {
 pub enum GameEvent {
     Step,
     Pause,
+    Fullscreen,
 }
 
 pub struct Tetrs {
@@ -48,7 +51,7 @@ impl Tetrs {
             event_loop,
             last_stepped: Instant::now(),
             debug_msg: String::new(),
-            state: TetrsState::Running,
+            state: TetrsState::Bootstrapped,
         })
     }
 
@@ -77,6 +80,10 @@ impl Tetrs {
     }
 
     pub fn step_time(&mut self) -> anyhow::Result<()> {
+        if self.state == TetrsState::Bootstrapped {
+            self.state = TetrsState::Running;
+            self.event_loop.send_event(GameEvent::Fullscreen)?;
+        }
         if self.state == TetrsState::Running {
             let delta = time::Duration::from_millis(DELTA);
             if self.last_stepped.elapsed() > delta {
@@ -91,13 +98,14 @@ impl Tetrs {
         self.debug_msg = msg;
     }
 
-    pub fn toggle_pause(&mut self) {
+    pub fn toggle_pause(&mut self) -> anyhow::Result<()> {
         if self.state == TetrsState::Running {
             self.state = TetrsState::Paused;
-            self.event_loop.send_event(GameEvent::Pause).unwrap();
+            self.event_loop.send_event(GameEvent::Pause)?;
         } else {
             self.state = TetrsState::Running;
         }
+        Ok(())
     }
 
     pub fn render(&mut self) -> anyhow::Result<()> {
@@ -119,6 +127,21 @@ impl Tetrs {
 
         frame.present();
         Ok(())
+    }
+}
+
+fn toggle_fullscreen(window: &Window, mode: &VideoMode) {
+    if window.fullscreen().is_some() {
+        window.set_fullscreen(None);
+        window.set_inner_size(winit::dpi::LogicalSize::new(
+            super::WINDOW_WIDTH,
+            super::WINDOW_HEIGHT,
+        ));
+        window.request_redraw();
+    } else {
+        let fullscreen = Some(Fullscreen::Exclusive(mode.clone()));
+        window.set_fullscreen(fullscreen);
+        window.request_redraw();
     }
 }
 
@@ -149,12 +172,12 @@ pub async fn run(
         monitor.video_modes().nth(max_mode_idx)
     };
 
-    let mode = maybe_mode.context("Can't obtain max size mode")?;
+    let fullscreen_mode = maybe_mode.context("Can't obtain max size mode for fullscreen")?;
 
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Poll;
 
-        tetrs.step_time().unwrap();
+        tetrs.step_time().expect("Panicked while stepping time");
 
         match event {
             Event::WindowEvent { event, .. } => match event {
@@ -177,30 +200,24 @@ pub async fn run(
                     VirtualKeyCode::Down => tetrs.handle_down(),
                     VirtualKeyCode::Left => tetrs.handle_left(),
                     VirtualKeyCode::Right => tetrs.handle_right(),
-                    VirtualKeyCode::Space => tetrs.toggle_pause(),
+                    VirtualKeyCode::Space => {
+                        tetrs.toggle_pause().expect("Panicked while toggling pause")
+                    }
                     VirtualKeyCode::F => {
-                        if window.fullscreen().is_some() {
-                            window.set_fullscreen(None);
-                            window.set_inner_size(winit::dpi::LogicalSize::new(
-                                super::WINDOW_WIDTH,
-                                super::WINDOW_HEIGHT,
-                            ));
-                            window.request_redraw();
-                        } else {
-                            let fullscreen = Some(Fullscreen::Exclusive(mode.clone()));
-                            window.set_fullscreen(fullscreen);
-                            window.request_redraw();
-                        }
+                        toggle_fullscreen(&window, &fullscreen_mode);
                     }
                     _ => {}
                 },
                 _ => {}
             },
             Event::RedrawRequested(_) => {
-                tetrs.render().unwrap();
+                tetrs.render().expect("Panicked while render");
             }
             Event::UserEvent(GameEvent::Step | GameEvent::Pause) => {
-                tetrs.render().unwrap();
+                tetrs.render().expect("Panicked while render");
+            }
+            Event::UserEvent(GameEvent::Fullscreen) => {
+                toggle_fullscreen(&window, &fullscreen_mode);
             }
             _ => {}
         }
