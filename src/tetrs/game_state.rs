@@ -90,7 +90,10 @@ impl GameState {
 
         for (y, row) in (start_y..start_y + t_height).enumerate() {
             for (x, col) in (start_x..start_x + t_width).enumerate() {
-                self.blocks[row][col] = self.current_tetromino.tetromino.shape[y][x];
+                let tetro_bit = self.current_tetromino.tetromino.shape[y][x];
+                if tetro_bit != BlockState::Emp {
+                    self.blocks[row][col] = self.current_tetromino.tetromino.shape[y][x];
+                }
             }
         }
     }
@@ -142,25 +145,23 @@ impl GameState {
 
         // Check if it intersects with the board
         // Visible piece of the tetromino
-        let (tetro_row_start, tetro_row_end) = {
-            let in_view = tetro_blocks_y + tetro_height;
-            if in_view < tetro_height {
-                ((tetro_height - in_view) as usize, tetro_height as usize)
-            } else {
-                (0, tetro_height as usize)
-            }
-        };
+        let in_view = tetro_blocks_y + tetro_height;
 
         // Intersected part of the board
-        let (board_row_start, board_row_end) = (
-            (tetro_blocks_y + tetro_height) as usize,
-            (tetro_blocks_y + tetro_height) as usize + tetro_row_end - tetro_row_start,
-        );
-
-        let board_row_end = if board_row_end < NUM_ROWS {
-            (tetro_blocks_y + tetro_height) as usize + tetro_row_end - tetro_row_start
-        } else {
-            NUM_ROWS
+        let (board_row_start, board_row_end) = {
+            if in_view < tetro_height {
+                (0, in_view as usize)
+            } else {
+                let bend = (tetro_blocks_y + tetro_height) as usize;
+                if bend < NUM_ROWS {
+                    (
+                        (tetro_blocks_y) as usize,
+                        (tetro_blocks_y + tetro_height) as usize,
+                    )
+                } else {
+                    ((tetro_blocks_y) as usize, NUM_ROWS)
+                }
+            }
         };
 
         let (board_col_start, board_col_end) = (
@@ -191,7 +192,7 @@ impl GameState {
             let unfilled = row
                 .iter()
                 .map(|x| *x == BlockState::Emp)
-                .reduce(|acc, x| acc && x)
+                .reduce(|acc, x| acc || x)
                 .unwrap_or(false);
             if unfilled {
                 copy_to -= 1;
@@ -203,7 +204,7 @@ impl GameState {
     }
 
     fn update_blocks(&mut self) {
-        // self.remove();
         self.tetromino_down();
+        self.remove();
     }
 }
