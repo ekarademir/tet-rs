@@ -95,6 +95,7 @@ impl Into<CurrentTetromino> for Tetromino {
 }
 
 impl Tetromino {
+    /// A CCW rotation of the tetromino
     pub fn rotate(&mut self) {
         let (height, width) = (self.shape.len(), self.shape[0].len());
         let mut new_shape = vec![vec![BlockState::Emp; height]; width];
