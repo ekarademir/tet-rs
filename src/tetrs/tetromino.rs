@@ -13,8 +13,8 @@ pub enum BlockState {
     Zee,
 }
 
-impl BlockState {
-    pub fn to_tetromino(&self) -> Tetromino {
+impl Into<Tetromino> for BlockState {
+    fn into(self) -> Tetromino {
         match self {
             BlockState::Arr => Tetromino::arr(),
             BlockState::Ell => Tetromino::ell(),
@@ -48,7 +48,7 @@ pub struct CurrentTetromino {
 impl CurrentTetromino {
     pub fn next_one() -> CurrentTetromino {
         let next_idx: usize = random_number::random!(..NEXT_TETRO_BAG.len());
-        let tetro = NEXT_TETRO_BAG[next_idx].to_tetromino();
+        let tetro: Tetromino = NEXT_TETRO_BAG[next_idx].into();
         tetro.into()
     }
 
@@ -63,6 +63,10 @@ impl CurrentTetromino {
     pub fn left(&mut self) {
         let newx = self.x as i8 - 1;
         self.x = if newx >= 0 { newx as usize } else { 0 };
+    }
+
+    pub fn rotate(&mut self) {
+        self.tetromino.rotate();
     }
 }
 
@@ -191,8 +195,8 @@ impl Tetromino {
     }
 
     ///
-    /// xxx
     ///  x
+    /// xxx
     ///
     pub fn tee() -> Self {
         Tetromino {

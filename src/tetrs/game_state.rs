@@ -40,7 +40,7 @@ impl GameState {
         &mut self,
         event_loop: &winit::event_loop::EventLoopProxy<GameEvent>,
     ) -> anyhow::Result<()> {
-        if self.time_elapsed > self.step_to_pass() {
+        if self.time_elapsed > self.current_speed() {
             self.update_blocks();
             self.time_elapsed = 0;
             event_loop
@@ -76,7 +76,7 @@ impl GameState {
 
     pub fn tetromino_rotate(&mut self) {
         if self.can_rotate() {
-            self.current_tetromino.tetromino.rotate();
+            self.current_tetromino.rotate();
         }
     }
 
@@ -98,7 +98,7 @@ impl GameState {
         }
     }
 
-    fn step_to_pass(&self) -> u8 {
+    fn current_speed(&self) -> u8 {
         if self.level > 10 {
             MAX_SPEED
         } else {
@@ -184,7 +184,7 @@ impl GameState {
         true
     }
 
-    fn remove(&mut self) {
+    fn remove_lines(&mut self) {
         let mut new_blocks = [[BlockState::Emp; NUM_COLS]; NUM_ROWS];
 
         let mut copy_to = NUM_ROWS;
@@ -205,6 +205,6 @@ impl GameState {
 
     fn update_blocks(&mut self) {
         self.tetromino_down();
-        self.remove();
+        self.remove_lines();
     }
 }
