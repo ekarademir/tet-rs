@@ -1,19 +1,13 @@
-use core::num;
-
 use anyhow::Context;
 
 use super::tetromino::{BlockState, CurrentTetromino};
+use super::GameEvent;
 
 pub const NUM_ROWS: usize = 28;
 pub const NUM_COLS: usize = 12;
 const MAX_SPEED: u8 = 42;
 const MAX_LEVEL: u8 = 40;
 const SCORE_PER_LEVEL: u128 = 1;
-
-#[derive(Debug)]
-pub enum GameEvent {
-    Step,
-}
 
 pub struct GameState {
     pub blocks: [[BlockState; NUM_COLS]; NUM_ROWS],

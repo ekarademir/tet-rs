@@ -10,9 +10,19 @@ use winit::{
 use game_state::GameState;
 use scene::{Frame, Scene};
 
-pub use game_state::GameEvent;
-
 const DELTA: u64 = 17;
+
+#[derive(PartialEq)]
+enum TetrsState {
+    Running,
+    Paused,
+}
+
+#[derive(Debug)]
+pub enum GameEvent {
+    Step,
+    Pause,
+}
 
 pub struct Tetrs {
     game_state: GameState,
@@ -20,6 +30,7 @@ pub struct Tetrs {
     event_loop: EventLoopProxy<GameEvent>,
     last_stepped: time::Instant,
     debug_msg: String,
+    state: TetrsState,
 }
 
 impl Tetrs {
@@ -37,6 +48,7 @@ impl Tetrs {
             event_loop,
             last_stepped: Instant::now(),
             debug_msg: String::new(),
+            state: TetrsState::Running,
         })
     }
 
@@ -65,16 +77,27 @@ impl Tetrs {
     }
 
     pub fn step_time(&mut self) -> anyhow::Result<()> {
-        let delta = time::Duration::from_millis(DELTA);
-        if self.last_stepped.elapsed() > delta {
-            self.game_state.step_time(&self.event_loop)?;
-            self.last_stepped = time::Instant::now();
+        if self.state == TetrsState::Running {
+            let delta = time::Duration::from_millis(DELTA);
+            if self.last_stepped.elapsed() > delta {
+                self.game_state.step_time(&self.event_loop)?;
+                self.last_stepped = time::Instant::now();
+            }
         }
         Ok(())
     }
 
     pub fn set_debug(&mut self, msg: String) {
         self.debug_msg = msg;
+    }
+
+    pub fn toggle_pause(&mut self) {
+        if self.state == TetrsState::Running {
+            self.state = TetrsState::Paused;
+            self.event_loop.send_event(GameEvent::Pause).unwrap();
+        } else {
+            self.state = TetrsState::Running;
+        }
     }
 
     pub fn render(&mut self) -> anyhow::Result<()> {
@@ -90,6 +113,9 @@ impl Tetrs {
         self.scene.render_score(&view, &self.game_state);
         self.scene.render_level(&view, &self.game_state);
         self.scene.render_debug(&view, &self.debug_msg);
+        if self.state == TetrsState::Paused {
+            self.scene.render_pause(&view, &self.game_state);
+        }
 
         frame.present();
         Ok(())
@@ -123,6 +149,7 @@ pub async fn run(window: Window, event_loop: EventLoop<GameEvent>, mut tetrs: Te
                     VirtualKeyCode::Down => tetrs.handle_down(),
                     VirtualKeyCode::Left => tetrs.handle_left(),
                     VirtualKeyCode::Right => tetrs.handle_right(),
+                    VirtualKeyCode::Space => tetrs.toggle_pause(),
                     _ => {}
                 },
                 _ => {}
@@ -130,7 +157,7 @@ pub async fn run(window: Window, event_loop: EventLoop<GameEvent>, mut tetrs: Te
             Event::RedrawRequested(_) => {
                 tetrs.render().unwrap();
             }
-            Event::UserEvent(GameEvent::Step) => {
+            Event::UserEvent(GameEvent::Step | GameEvent::Pause) => {
                 tetrs.render().unwrap();
             }
             _ => {}

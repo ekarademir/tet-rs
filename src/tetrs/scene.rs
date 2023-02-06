@@ -88,7 +88,7 @@ impl<'a> Scene {
         view: &wgpu::TextureView,
         game_state: &super::GameState,
     ) {
-        self.write(&view, "next", SPACE * 1);
+        self.write(&view, "next", SPACE * 1, GAME_AREA_WIDTH);
         let blx = self
             .next_tetromino_geom(&game_state.next_tetromino.tetromino)
             .to_drawable(&self.base);
@@ -108,16 +108,20 @@ impl<'a> Scene {
 
     pub fn render_score(&mut self, view: &wgpu::TextureView, game_state: &super::GameState) {
         let text = format!("score   {}", game_state.score);
-        self.write(&view, text.as_str(), SPACE * 12);
+        self.write(&view, text.as_str(), SPACE * 12, GAME_AREA_WIDTH);
+    }
+
+    pub fn render_pause(&mut self, view: &wgpu::TextureView, _game_state: &super::GameState) {
+        self.write(&view, "PAUSED", SPACE * 12, SPACE * 3);
     }
 
     pub fn render_level(&mut self, view: &wgpu::TextureView, game_state: &super::GameState) {
         let text = format!("level   {}", game_state.level);
-        self.write(&view, text.as_str(), SPACE * 14);
+        self.write(&view, text.as_str(), SPACE * 14, GAME_AREA_WIDTH);
     }
 
     pub fn render_debug(&mut self, view: &wgpu::TextureView, to_dbg: &String) {
-        self.write(&view, &to_dbg.as_str(), SPACE * 20);
+        self.write(&view, &to_dbg.as_str(), SPACE * 20, GAME_AREA_WIDTH);
     }
 
     pub fn render_game(&self, view: &wgpu::TextureView) {
@@ -208,7 +212,7 @@ impl<'a> Scene {
         self.base.queue.submit(Some(encoder.finish()));
     }
 
-    fn write(&mut self, view: &wgpu::TextureView, text: &str, y_blocks: u32) {
+    fn write(&mut self, view: &wgpu::TextureView, text: &str, y_blocks: u32, x_blocks: u32) {
         let (left_margin, top_margin) = {
             (
                 (self.window_size.width - self.scene_size.width) / 2,
@@ -218,7 +222,7 @@ impl<'a> Scene {
 
         let font_size = self.block_size as f32;
         let colour: Color = super::colours::LIGHT_BLUE.into();
-        let pos_x = (LEFT_MARGIN + GAME_AREA_WIDTH + SPACE) * self.block_size + left_margin;
+        let pos_x = (LEFT_MARGIN + x_blocks + SPACE) * self.block_size + left_margin;
         let pos_y = (TOP_MARGIN + y_blocks + SPACE) * self.block_size + top_margin;
         let section = Section::default()
             .add_text(Text::new(text).with_scale(font_size).with_color(colour))
