@@ -1,10 +1,14 @@
+use core::num;
+
 use anyhow::Context;
 
 use super::tetromino::{BlockState, CurrentTetromino};
 
 pub const NUM_ROWS: usize = 28;
 pub const NUM_COLS: usize = 12;
-const MAX_SPEED: u8 = 10;
+const MAX_SPEED: u8 = 25;
+const MAX_LEVEL: u8 = 20;
+const SCORE_PER_LEVEL: u128 = 1;
 
 #[derive(Debug)]
 pub enum GameEvent {
@@ -99,7 +103,7 @@ impl GameState {
     }
 
     fn current_speed(&self) -> u8 {
-        if self.level > 10 {
+        if self.level > MAX_LEVEL {
             MAX_SPEED
         } else {
             MAX_SPEED - self.level
@@ -184,8 +188,10 @@ impl GameState {
         true
     }
 
-    fn remove_lines(&mut self) {
+    fn remove_lines(&mut self) -> u8 {
         let mut new_blocks = [[BlockState::Emp; NUM_COLS]; NUM_ROWS];
+
+        let mut num_removed = 0;
 
         let mut copy_to = NUM_ROWS;
         for row in self.blocks.iter().rev() {
@@ -197,14 +203,30 @@ impl GameState {
             if unfilled {
                 copy_to -= 1;
                 new_blocks[copy_to][..NUM_COLS].copy_from_slice(row);
+            } else {
+                num_removed += 1;
             }
         }
 
         self.blocks = new_blocks;
+
+        num_removed
+    }
+
+    fn update_score(&mut self, num_removed: u8) {
+        if num_removed > 0 {
+            self.score += num_removed as u128;
+        }
+    }
+
+    fn update_level(&mut self) {
+        self.level = (self.score / SCORE_PER_LEVEL) as u8;
     }
 
     fn update_blocks(&mut self) {
         self.tetromino_down();
-        self.remove_lines();
+        let n = self.remove_lines();
+        self.update_score(n);
+        self.update_level();
     }
 }
