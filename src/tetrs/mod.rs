@@ -4,7 +4,7 @@ use anyhow::Context;
 use winit::{
     event::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent},
     event_loop::{ControlFlow, EventLoop, EventLoopProxy},
-    window::Window,
+    window::{Fullscreen, Window},
 };
 
 use game_state::GameState;
@@ -122,7 +122,35 @@ impl Tetrs {
     }
 }
 
-pub async fn run(window: Window, event_loop: EventLoop<GameEvent>, mut tetrs: Tetrs) {
+pub async fn run(
+    window: Window,
+    event_loop: EventLoop<GameEvent>,
+    mut tetrs: Tetrs,
+) -> anyhow::Result<()> {
+    // Machinery for the full screen mode
+    let monitor = event_loop
+        .available_monitors()
+        .next()
+        .context("Can't find a monitor")?;
+    let modes: Vec<_> = monitor.video_modes().collect();
+    if modes.len() == 0 {
+        return Err(anyhow::Error::msg("Can't find a mode for fullscreen"));
+    }
+    let maybe_mode = {
+        let mut max_mode_idx: usize = 0;
+        let mut max_size = winit::dpi::PhysicalSize::new(0, 0);
+        for (mode_idx, mode) in modes.iter().enumerate() {
+            if mode.size().width > max_size.width && mode.size().height > max_size.height {
+                max_size = mode.size();
+                max_mode_idx = mode_idx;
+            }
+        }
+
+        monitor.video_modes().nth(max_mode_idx)
+    };
+
+    let mode = maybe_mode.context("Can't obtain max size mode")?;
+
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Poll;
 
@@ -150,6 +178,20 @@ pub async fn run(window: Window, event_loop: EventLoop<GameEvent>, mut tetrs: Te
                     VirtualKeyCode::Left => tetrs.handle_left(),
                     VirtualKeyCode::Right => tetrs.handle_right(),
                     VirtualKeyCode::Space => tetrs.toggle_pause(),
+                    VirtualKeyCode::F => {
+                        if window.fullscreen().is_some() {
+                            window.set_fullscreen(None);
+                            window.set_inner_size(winit::dpi::LogicalSize::new(
+                                super::WINDOW_WIDTH,
+                                super::WINDOW_HEIGHT,
+                            ));
+                            window.request_redraw();
+                        } else {
+                            let fullscreen = Some(Fullscreen::Exclusive(mode.clone()));
+                            window.set_fullscreen(fullscreen);
+                            window.request_redraw();
+                        }
+                    }
                     _ => {}
                 },
                 _ => {}
