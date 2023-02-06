@@ -478,7 +478,7 @@ impl<'a> Scene {
             .device
             .create_shader_module(wgpu::ShaderModuleDescriptor {
                 label: None,
-                source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("game_area.wgsl"))),
+                source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("tetris.wgsl"))),
             });
 
         let pipeline_layout = base
