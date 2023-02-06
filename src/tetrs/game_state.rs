@@ -17,6 +17,7 @@ pub struct GameState {
     pub next_tetromino: CurrentTetromino,
     pub time_elapsed: u8,
     pub steps_elapsed: u128,
+    finished: bool,
 }
 
 impl std::default::Default for GameState {
@@ -29,6 +30,7 @@ impl std::default::Default for GameState {
             steps_elapsed: 0,
             current_tetromino: CurrentTetromino::next_one(),
             next_tetromino: CurrentTetromino::next_one(),
+            finished: false,
         }
     }
 }
@@ -38,15 +40,21 @@ impl GameState {
         &mut self,
         event_loop: &winit::event_loop::EventLoopProxy<GameEvent>,
     ) -> anyhow::Result<()> {
-        if self.time_elapsed > self.current_speed() {
-            self.update_blocks();
-            self.time_elapsed = 0;
+        if !self.finished {
+            if self.time_elapsed > self.current_speed() {
+                self.update_blocks();
+                self.time_elapsed = 0;
+                event_loop
+                    .send_event(GameEvent::Step)
+                    .context("Couldn't send GameEvent::Step")?;
+            }
+            self.time_elapsed += 1;
+            self.steps_elapsed += 1;
+        } else {
             event_loop
-                .send_event(GameEvent::Step)
-                .context("Couldn't send GameEvent::Step")?;
+                .send_event(GameEvent::Finished)
+                .context("Couldn't send GameEvent::Finished")?;
         }
-        self.time_elapsed += 1;
-        self.steps_elapsed += 1;
         Ok(())
     }
 
@@ -92,6 +100,12 @@ impl GameState {
             self.current_tetromino.tetromino.shape.len(),
         );
 
+        if self.current_tetromino.y < 0 {
+            // Tetromino dropped while off screen, game over.
+            self.finish_game();
+            return;
+        }
+
         let (start_x, start_y) = (self.current_tetromino.x, self.current_tetromino.y as usize);
 
         for (y, row) in (start_y..start_y + t_height).enumerate() {
@@ -102,6 +116,10 @@ impl GameState {
                 }
             }
         }
+    }
+
+    fn finish_game(&mut self) {
+        self.finished = true;
     }
 
     fn can_move(&self, dx: i8, dy: i8) -> bool {

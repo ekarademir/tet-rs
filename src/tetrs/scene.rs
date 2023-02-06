@@ -88,7 +88,7 @@ impl<'a> Scene {
         view: &wgpu::TextureView,
         game_state: &super::GameState,
     ) {
-        self.write(&view, "next", SPACE * 1, GAME_AREA_WIDTH);
+        self.write(&view, "next", SPACE * 1, GAME_AREA_WIDTH, false);
         let blx = self
             .next_tetromino_geom(&game_state.next_tetromino.tetromino)
             .to_drawable(&self.base);
@@ -108,20 +108,20 @@ impl<'a> Scene {
 
     pub fn render_score(&mut self, view: &wgpu::TextureView, game_state: &super::GameState) {
         let text = format!("score   {}", game_state.score);
-        self.write(&view, text.as_str(), SPACE * 12, GAME_AREA_WIDTH);
+        self.write(&view, text.as_str(), SPACE * 12, GAME_AREA_WIDTH, false);
     }
 
     pub fn render_pause(&mut self, view: &wgpu::TextureView, _game_state: &super::GameState) {
-        self.write(&view, "PAUSED", SPACE * 12, SPACE * 3);
+        self.write(&view, "PAUSED", SPACE * 12, SPACE * 3, false);
     }
 
     pub fn render_level(&mut self, view: &wgpu::TextureView, game_state: &super::GameState) {
         let text = format!("level   {}", game_state.level);
-        self.write(&view, text.as_str(), SPACE * 14, GAME_AREA_WIDTH);
+        self.write(&view, text.as_str(), SPACE * 14, GAME_AREA_WIDTH, false);
     }
 
     pub fn render_debug(&mut self, view: &wgpu::TextureView, to_dbg: &String) {
-        self.write(&view, &to_dbg.as_str(), SPACE * 20, GAME_AREA_WIDTH);
+        self.write(&view, &to_dbg.as_str(), SPACE * 20, GAME_AREA_WIDTH, false);
     }
 
     pub fn render_game(&self, view: &wgpu::TextureView) {
@@ -177,6 +177,16 @@ impl<'a> Scene {
         self.base.queue.submit(Some(encoder.finish()));
     }
 
+    pub fn render_finish_screen(
+        &mut self,
+        view: &wgpu::TextureView,
+        game_state: &super::GameState,
+    ) {
+        self.write(view, "FINISHED!", SPACE * 6, SPACE * 5, true);
+        let msg = format!("SCORE  {:?}", game_state.score);
+        self.write(view, msg.as_str(), SPACE * 8, SPACE * 5, false);
+    }
+
     pub fn render_blocks(&self, view: &wgpu::TextureView, game_state: &super::GameState) {
         let blx = self.blocks(game_state).to_drawable(&self.base);
         self.draw_blocks(view, blx);
@@ -212,12 +222,25 @@ impl<'a> Scene {
         self.base.queue.submit(Some(encoder.finish()));
     }
 
-    fn write(&mut self, view: &wgpu::TextureView, text: &str, y_blocks: u32, x_blocks: u32) {
+    fn write(
+        &mut self,
+        view: &wgpu::TextureView,
+        text: &str,
+        y_blocks: u32,
+        x_blocks: u32,
+        blank_screen: bool,
+    ) {
         let (left_margin, top_margin) = {
             (
                 (self.window_size.width - self.scene_size.width) / 2,
                 (self.window_size.height - self.scene_size.height) / 2,
             )
+        };
+
+        let load_op = if blank_screen {
+            wgpu::LoadOp::Clear(wgpu::Color::BLACK)
+        } else {
+            wgpu::LoadOp::Load
         };
 
         let font_size = self.block_size as f32;
@@ -252,7 +275,7 @@ impl<'a> Scene {
                     view: &view,
                     resolve_target: None,
                     ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Load,
+                        load: load_op,
                         store: true,
                     },
                 })],

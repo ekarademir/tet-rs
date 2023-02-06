@@ -18,6 +18,7 @@ enum TetrsState {
     Bootstrapped,
     Running,
     Paused,
+    Finished,
 }
 
 #[derive(Debug)]
@@ -25,6 +26,7 @@ pub enum GameEvent {
     Step,
     Pause,
     Fullscreen,
+    Finished,
 }
 
 pub struct Tetrs {
@@ -108,21 +110,31 @@ impl Tetrs {
         Ok(())
     }
 
+    pub fn finish_game(&mut self) -> anyhow::Result<()> {
+        self.state = TetrsState::Finished;
+        self.render().context("Can't render after finish")?;
+        Ok(())
+    }
+
     pub fn render(&mut self) -> anyhow::Result<()> {
         let frame = self.scene.get_next_frame();
         let view = frame
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
 
-        self.scene.render_game(&view);
-        self.scene.render_blocks(&view, &self.game_state);
-        self.scene.render_next_tetromino(&view, &self.game_state);
-        self.scene.render_current_tetromino(&view, &self.game_state);
-        self.scene.render_score(&view, &self.game_state);
-        self.scene.render_level(&view, &self.game_state);
-        self.scene.render_debug(&view, &self.debug_msg);
-        if self.state == TetrsState::Paused {
-            self.scene.render_pause(&view, &self.game_state);
+        if self.state != TetrsState::Finished {
+            self.scene.render_game(&view);
+            self.scene.render_blocks(&view, &self.game_state);
+            self.scene.render_next_tetromino(&view, &self.game_state);
+            self.scene.render_current_tetromino(&view, &self.game_state);
+            self.scene.render_score(&view, &self.game_state);
+            self.scene.render_level(&view, &self.game_state);
+            self.scene.render_debug(&view, &self.debug_msg);
+            if self.state == TetrsState::Paused {
+                self.scene.render_pause(&view, &self.game_state);
+            }
+        } else {
+            self.scene.render_finish_screen(&view, &self.game_state);
         }
 
         frame.present();
@@ -218,6 +230,9 @@ pub async fn run(
             }
             Event::UserEvent(GameEvent::Fullscreen) => {
                 toggle_fullscreen(&window, &fullscreen_mode);
+            }
+            Event::UserEvent(GameEvent::Finished) => {
+                tetrs.finish_game().unwrap();
             }
             _ => {}
         }
