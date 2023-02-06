@@ -1,6 +1,7 @@
 use std::{borrow::Cow, cmp};
 
 use anyhow::Context;
+use wgpu::util::DeviceExt;
 use wgpu_text::section::{
     BuiltInLineBreaker, Color, HorizontalAlign, Layout, Section, Text, VerticalAlign,
 };
@@ -32,7 +33,10 @@ pub struct Scene {
     scene_size: Frame,
     window_size: Frame,
     pipeline: wgpu::RenderPipeline,
+    pipeline_new: wgpu::RenderPipeline,
     writer: Writer,
+    bind_group: wgpu::BindGroup,
+    bind_group_layout: wgpu::BindGroupLayout,
 }
 
 impl<'a> Scene {
@@ -46,8 +50,27 @@ impl<'a> Scene {
 
         let writer = Writer::new(&base).context("Couldn't create the text writer")?;
 
+        let bind_group_layout =
+            base.device
+                .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                    label: None,
+                    entries: &[wgpu::BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Uniform,
+                            has_dynamic_offset: false,
+                            min_binding_size: wgpu::BufferSize::new(16),
+                        },
+                        count: None,
+                    }],
+                });
+
         Ok(Scene {
             pipeline: Scene::build_pipeline(&base),
+            pipeline_new: Scene::build_pipeline_new(&base, &bind_group_layout),
+            bind_group: Scene::build_bind_group(&base, &bind_group_layout),
+            bind_group_layout,
             window_size,
             scene_size: Frame::new(SCREEN_HEIGHT * block_size, SCREEN_WIDTH * block_size),
             block_size,
@@ -124,6 +147,47 @@ impl<'a> Scene {
         self.write(&view, &to_dbg.as_str(), SPACE * 20, GAME_AREA_WIDTH, false);
     }
 
+    pub fn render_game_new(&self, view: &wgpu::TextureView) {
+        let outer_rect = self
+            .rectangle(
+                self.block_size * LEFT_MARGIN - self.line_weight,
+                self.block_size * (BOTTOM_MARGIN + GAME_AREA_HEIGHT) + self.line_weight,
+                self.block_size * (LEFT_MARGIN + GAME_AREA_WIDTH) + self.line_weight,
+                self.block_size * BOTTOM_MARGIN - self.line_weight,
+                colours::DARK_GREEN,
+            )
+            .to_drawable(&self.base);
+
+        let mut encoder = self
+            .base
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+
+        // Render pass
+        {
+            let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: None,
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &view,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+                        store: true,
+                    },
+                })],
+                depth_stencil_attachment: None,
+            });
+
+            rpass.set_pipeline(&self.pipeline_new);
+
+            rpass.set_bind_group(0, &self.bind_group, &[]);
+
+            rpass.set_index_buffer(outer_rect.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+            rpass.set_vertex_buffer(0, outer_rect.vertex_buffer.slice(..));
+            rpass.draw_indexed(0..outer_rect.index_buffer_len, 0, 0..1);
+        }
+        self.base.queue.submit(Some(encoder.finish()));
+    }
     pub fn render_game(&self, view: &wgpu::TextureView) {
         let outer_rect = self
             .rectangle(
@@ -486,6 +550,87 @@ impl<'a> Scene {
             .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: None,
                 bind_group_layouts: &[],
+                push_constant_ranges: &[],
+            });
+
+        let swapchain_format = base.surface.get_supported_formats(&base.adapter)[0];
+
+        let vertex_size = std::mem::size_of::<Vertex>();
+        let vertex_buffers_descriptor = [wgpu::VertexBufferLayout {
+            array_stride: vertex_size as wgpu::BufferAddress,
+            step_mode: wgpu::VertexStepMode::Vertex,
+            attributes: &[
+                // Coords
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Float32x4,
+                    offset: 0,
+                    shader_location: 0,
+                },
+                // Colour
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Float32x4,
+                    offset: 4 * 4,
+                    shader_location: 1,
+                },
+            ],
+        }];
+
+        base.device
+            .create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+                label: None,
+                layout: Some(&pipeline_layout),
+                vertex: wgpu::VertexState {
+                    module: &shader,
+                    entry_point: "vs_main",
+                    buffers: &vertex_buffers_descriptor,
+                },
+                fragment: Some(wgpu::FragmentState {
+                    module: &shader,
+                    entry_point: "fs_main",
+                    targets: &[Some(swapchain_format.into())],
+                }),
+                primitive: wgpu::PrimitiveState::default(),
+                depth_stencil: None,
+                multisample: wgpu::MultisampleState::default(),
+                multiview: None,
+            })
+    }
+
+    fn build_bind_group(base: &'a Base, bgl: &wgpu::BindGroupLayout) -> wgpu::BindGroup {
+        let uniform_buffer_content: &[f32; 4] = &[1.0, 0.0, 0.0, 1.0];
+
+        let uniform_buffer = base
+            .device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: None,
+                contents: bytemuck::cast_slice(uniform_buffer_content),
+                usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            });
+
+        let bind_group = base.device.create_bind_group(&wgpu::BindGroupDescriptor {
+            layout: &bgl,
+            label: None,
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: uniform_buffer.as_entire_binding(),
+            }],
+        });
+        bind_group
+    }
+
+    fn build_pipeline_new(base: &'a Base, bgl: &wgpu::BindGroupLayout) -> wgpu::RenderPipeline {
+        let shader = base
+            .device
+            .create_shader_module(wgpu::ShaderModuleDescriptor {
+                label: None,
+                source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("tetris_new.wgsl"))),
+            });
+
+        let pipeline_layout = base
+            .device
+            .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                label: None,
+                bind_group_layouts: &[bgl],
                 push_constant_ranges: &[],
             });
 
