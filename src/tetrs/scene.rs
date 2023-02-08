@@ -60,7 +60,7 @@ impl<'a> Scene {
                         ty: wgpu::BindingType::Buffer {
                             ty: wgpu::BufferBindingType::Uniform,
                             has_dynamic_offset: false,
-                            min_binding_size: wgpu::BufferSize::new(16),
+                            min_binding_size: wgpu::BufferSize::new(4),
                         },
                         count: None,
                     }],
@@ -69,7 +69,7 @@ impl<'a> Scene {
         Ok(Scene {
             pipeline: Scene::build_pipeline(&base),
             pipeline_new: Scene::build_pipeline_new(&base, &bind_group_layout),
-            bind_group: Scene::build_bind_group(&base, &bind_group_layout),
+            bind_group: Scene::update_transition(&base, &bind_group_layout),
             bind_group_layout,
             window_size,
             scene_size: Frame::new(SCREEN_HEIGHT * block_size, SCREEN_WIDTH * block_size),
@@ -188,6 +188,7 @@ impl<'a> Scene {
         }
         self.base.queue.submit(Some(encoder.finish()));
     }
+
     pub fn render_game(&self, view: &wgpu::TextureView) {
         let outer_rect = self
             .rectangle(
@@ -596,8 +597,8 @@ impl<'a> Scene {
             })
     }
 
-    fn build_bind_group(base: &'a Base, bgl: &wgpu::BindGroupLayout) -> wgpu::BindGroup {
-        let uniform_buffer_content: &[f32; 4] = &[1.0, 0.0, 0.0, 1.0];
+    fn update_transition(base: &'a Base, bgl: &wgpu::BindGroupLayout) -> wgpu::BindGroup {
+        let uniform_buffer_content: &[f32; 1] = &[1.0];
 
         let uniform_buffer = base
             .device

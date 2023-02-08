@@ -18,9 +18,9 @@ fn vs_main(in_data: VertexInput) ->  VertexOutput {
 
 @group(0)
 @binding(0)
-var<uniform> colourx: vec4<f32>;
+var<uniform> transition: f32;
 
 @fragment
 fn fs_main(vertex: VertexOutput) -> @location(0) vec4<f32> {
-  return colourx;
+  return vec4(0.0, transition, 0.0, 1.0);
 }
