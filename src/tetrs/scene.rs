@@ -33,10 +33,10 @@ pub struct Scene {
     scene_size: Frame,
     window_size: Frame,
     pipeline: wgpu::RenderPipeline,
-    pipeline_new: wgpu::RenderPipeline,
+    postprocess_pipeline: wgpu::RenderPipeline,
     writer: Writer,
-    bind_group: wgpu::BindGroup,
-    bind_group_layout: wgpu::BindGroupLayout,
+    transition_bind_group: wgpu::BindGroup,
+    postprocess_layout: wgpu::BindGroupLayout,
 }
 
 impl<'a> Scene {
@@ -50,7 +50,7 @@ impl<'a> Scene {
 
         let writer = Writer::new(&base).context("Couldn't create the text writer")?;
 
-        let bind_group_layout =
+        let postprocess_layout =
             base.device
                 .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
                     label: None,
@@ -68,9 +68,9 @@ impl<'a> Scene {
 
         Ok(Scene {
             pipeline: Scene::build_pipeline(&base),
-            pipeline_new: Scene::build_pipeline_new(&base, &bind_group_layout),
-            bind_group: Scene::update_transition(&base, &bind_group_layout),
-            bind_group_layout,
+            postprocess_pipeline: Scene::build_pipeline_new(&base, &postprocess_layout),
+            transition_bind_group: Scene::update_transition(&base, &postprocess_layout),
+            postprocess_layout,
             window_size,
             scene_size: Frame::new(SCREEN_HEIGHT * block_size, SCREEN_WIDTH * block_size),
             block_size,
@@ -178,9 +178,9 @@ impl<'a> Scene {
                 depth_stencil_attachment: None,
             });
 
-            rpass.set_pipeline(&self.pipeline_new);
+            rpass.set_pipeline(&self.postprocess_pipeline);
 
-            rpass.set_bind_group(0, &self.bind_group, &[]);
+            rpass.set_bind_group(0, &self.transition_bind_group, &[]);
 
             rpass.set_index_buffer(outer_rect.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
             rpass.set_vertex_buffer(0, outer_rect.vertex_buffer.slice(..));
@@ -608,7 +608,7 @@ impl<'a> Scene {
                 usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             });
 
-        let bind_group = base.device.create_bind_group(&wgpu::BindGroupDescriptor {
+        let transition_bind_group = base.device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: &bgl,
             label: None,
             entries: &[wgpu::BindGroupEntry {
@@ -616,7 +616,7 @@ impl<'a> Scene {
                 resource: uniform_buffer.as_entire_binding(),
             }],
         });
-        bind_group
+        transition_bind_group
     }
 
     fn build_pipeline_new(base: &'a Base, bgl: &wgpu::BindGroupLayout) -> wgpu::RenderPipeline {
@@ -624,7 +624,7 @@ impl<'a> Scene {
             .device
             .create_shader_module(wgpu::ShaderModuleDescriptor {
                 label: None,
-                source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("tetris_new.wgsl"))),
+                source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("postprocess.wgsl"))),
             });
 
         let pipeline_layout = base
