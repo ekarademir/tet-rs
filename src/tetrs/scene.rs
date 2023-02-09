@@ -53,17 +53,29 @@ impl<'a> Scene {
         let postprocess_layout =
             base.device
                 .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                    label: None,
-                    entries: &[wgpu::BindGroupLayoutEntry {
-                        binding: 0,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Buffer {
-                            ty: wgpu::BufferBindingType::Uniform,
-                            has_dynamic_offset: false,
-                            min_binding_size: wgpu::BufferSize::new(4),
+                    label: Some("Post process bind group layout"),
+                    entries: &[
+                        wgpu::BindGroupLayoutEntry {
+                            binding: 0,
+                            visibility: wgpu::ShaderStages::FRAGMENT,
+                            ty: wgpu::BindingType::Buffer {
+                                ty: wgpu::BufferBindingType::Uniform,
+                                has_dynamic_offset: false,
+                                min_binding_size: wgpu::BufferSize::new(4),
+                            },
+                            count: None,
                         },
-                        count: None,
-                    }],
+                        wgpu::BindGroupLayoutEntry {
+                            binding: 1,
+                            visibility: wgpu::ShaderStages::FRAGMENT,
+                            ty: wgpu::BindingType::Texture {
+                                sample_type: wgpu::TextureSampleType::Uint,
+                                view_dimension: wgpu::TextureViewDimension::D2,
+                                multisampled: false,
+                            },
+                            count: None,
+                        },
+                    ],
                 });
 
         Ok(Scene {
@@ -158,15 +170,17 @@ impl<'a> Scene {
             )
             .to_drawable(&self.base);
 
-        let mut encoder = self
-            .base
-            .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+        let mut encoder =
+            self.base
+                .device
+                .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                    label: Some("Post process command encoder"),
+                });
 
         // Render pass
         {
             let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: None,
+                label: Some("Post process render pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &view,
                     resolve_target: None,
@@ -209,15 +223,17 @@ impl<'a> Scene {
             )
             .to_drawable(&self.base);
 
-        let mut encoder = self
-            .base
-            .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+        let mut encoder =
+            self.base
+                .device
+                .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                    label: Some("Game command encoder"),
+                });
 
         // Render pass
         {
             let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: None,
+                label: Some("Game render pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &view,
                     resolve_target: None,
@@ -258,15 +274,17 @@ impl<'a> Scene {
     }
 
     fn draw_blocks(&self, view: &wgpu::TextureView, blx: Drawable) {
-        let mut encoder = self
-            .base
-            .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+        let mut encoder =
+            self.base
+                .device
+                .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                    label: Some("Finish screen command encoder"),
+                });
 
         // Render pass
         {
             let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: None,
+                label: Some("Finish screen render pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &view,
                     resolve_target: None,
@@ -327,15 +345,17 @@ impl<'a> Scene {
             .with_screen_position((pos_x as f32, pos_y as f32))
             .to_owned();
 
-        let mut encoder = self
-            .base
-            .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+        let mut encoder =
+            self.base
+                .device
+                .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                    label: Some("Text encoder"),
+                });
 
         // Render pass
         {
             encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: None,
+                label: Some("Text render pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &view,
                     resolve_target: None,
@@ -542,14 +562,14 @@ impl<'a> Scene {
         let shader = base
             .device
             .create_shader_module(wgpu::ShaderModuleDescriptor {
-                label: None,
+                label: Some("Main shader"),
                 source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("tetris.wgsl"))),
             });
 
         let pipeline_layout = base
             .device
             .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                label: None,
+                label: Some("Main pipeline layout"),
                 bind_group_layouts: &[],
                 push_constant_ranges: &[],
             });
@@ -578,7 +598,7 @@ impl<'a> Scene {
 
         base.device
             .create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-                label: None,
+                label: Some("Main pipleline"),
                 layout: Some(&pipeline_layout),
                 vertex: wgpu::VertexState {
                     module: &shader,
@@ -603,14 +623,14 @@ impl<'a> Scene {
         let uniform_buffer = base
             .device
             .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: None,
+                label: Some("Transition buffer"),
                 contents: bytemuck::cast_slice(uniform_buffer_content),
                 usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             });
 
         let transition_bind_group = base.device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: &bgl,
-            label: None,
+            label: Some("Post process bind group"),
             entries: &[wgpu::BindGroupEntry {
                 binding: 0,
                 resource: uniform_buffer.as_entire_binding(),
@@ -623,14 +643,14 @@ impl<'a> Scene {
         let shader = base
             .device
             .create_shader_module(wgpu::ShaderModuleDescriptor {
-                label: None,
+                label: Some("Post process shader"),
                 source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("postprocess.wgsl"))),
             });
 
         let pipeline_layout = base
             .device
             .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                label: None,
+                label: Some("Post process pipeline layout"),
                 bind_group_layouts: &[bgl],
                 push_constant_ranges: &[],
             });
@@ -659,7 +679,7 @@ impl<'a> Scene {
 
         base.device
             .create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-                label: None,
+                label: Some("Post process pipleline"),
                 layout: Some(&pipeline_layout),
                 vertex: wgpu::VertexState {
                     module: &shader,

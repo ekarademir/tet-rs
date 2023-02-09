@@ -30,14 +30,14 @@ impl Geometry {
         let vertex_buffer = base
             .device
             .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: None,
+                label: Some("Geometry vertex buffer"),
                 contents: bytemuck::cast_slice(&self.vertices),
                 usage: wgpu::BufferUsages::VERTEX,
             });
         let index_buffer = base
             .device
             .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: None,
+                label: Some("Geometry index buffer"),
                 contents: bytemuck::cast_slice(&self.indices),
                 usage: wgpu::BufferUsages::INDEX,
             });
