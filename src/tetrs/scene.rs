@@ -1,7 +1,6 @@
 use std::{borrow::Cow, cmp};
 
 use anyhow::Context;
-use wgpu::util::DeviceExt;
 use wgpu_text::section::{
     BuiltInLineBreaker, Color, HorizontalAlign, Layout, Section, Text, VerticalAlign,
 };
