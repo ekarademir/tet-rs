@@ -123,9 +123,7 @@ impl Tetrs {
             .create_view(&wgpu::TextureViewDescriptor::default());
 
         if self.state != TetrsState::Finished {
-            // self.scene.render_game_new(&view);
-            self.scene.render_game(&view);
-            self.scene.render_blocks(&view, &self.game_state);
+            self.scene.render(&view, &self.game_state);
             self.scene.render_next_tetromino(&view, &self.game_state);
             self.scene.render_current_tetromino(&view, &self.game_state);
             self.scene.render_score(&view, &self.game_state);

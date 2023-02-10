@@ -83,6 +83,46 @@ impl<'a> Scene {
         );
     }
 
+    pub fn render(&mut self, view: &wgpu::TextureView, game_state: &super::GameState) {
+        let game_arena = self.game_arena().to_drawable(&self.base);
+        let committed_blocks = self.blocks(game_state).to_drawable(&self.base);
+
+        let mut encoder =
+            self.base
+                .device
+                .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                    label: Some("Game scene command encoder"),
+                });
+
+        {
+            let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("Game render pass"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &view,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+                        store: true,
+                    },
+                })],
+                depth_stencil_attachment: None,
+            });
+
+            rpass.set_pipeline(&self.pipeline);
+
+            rpass.set_index_buffer(game_arena.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+            rpass.set_vertex_buffer(0, game_arena.vertex_buffer.slice(..));
+            rpass.draw_indexed(0..game_arena.index_buffer_len, 0, 0..1);
+            rpass.set_index_buffer(
+                committed_blocks.index_buffer.slice(..),
+                wgpu::IndexFormat::Uint16,
+            );
+            rpass.set_vertex_buffer(0, committed_blocks.vertex_buffer.slice(..));
+            rpass.draw_indexed(0..committed_blocks.index_buffer_len, 0, 0..1);
+        }
+        self.base.queue.submit(Some(encoder.finish()));
+    }
+
     pub fn render_next_tetromino(
         &mut self,
         view: &wgpu::TextureView,
@@ -124,59 +164,23 @@ impl<'a> Scene {
         self.write(&view, &to_dbg.as_str(), SPACE * 20, GAME_AREA_WIDTH, false);
     }
 
-    pub fn render_game(&self, view: &wgpu::TextureView) {
-        let outer_rect = self
-            .rectangle(
-                self.block_size * LEFT_MARGIN - self.line_weight,
-                self.block_size * (BOTTOM_MARGIN + GAME_AREA_HEIGHT) + self.line_weight,
-                self.block_size * (LEFT_MARGIN + GAME_AREA_WIDTH) + self.line_weight,
-                self.block_size * BOTTOM_MARGIN - self.line_weight,
-                colours::DARK_GREEN,
-            )
-            .to_drawable(&self.base);
-        let inner_rect = self
-            .rectangle(
-                self.block_size * LEFT_MARGIN,
-                self.block_size * (BOTTOM_MARGIN + GAME_AREA_HEIGHT),
-                self.block_size * (LEFT_MARGIN + GAME_AREA_WIDTH),
-                self.block_size * BOTTOM_MARGIN,
-                colours::BLACK,
-            )
-            .to_drawable(&self.base);
+    fn game_arena(&self) -> Geometry {
+        let outer_rect = self.rectangle(
+            self.block_size * LEFT_MARGIN - self.line_weight,
+            self.block_size * (BOTTOM_MARGIN + GAME_AREA_HEIGHT) + self.line_weight,
+            self.block_size * (LEFT_MARGIN + GAME_AREA_WIDTH) + self.line_weight,
+            self.block_size * BOTTOM_MARGIN - self.line_weight,
+            colours::DARK_GREEN,
+        );
+        let inner_rect = self.rectangle(
+            self.block_size * LEFT_MARGIN,
+            self.block_size * (BOTTOM_MARGIN + GAME_AREA_HEIGHT),
+            self.block_size * (LEFT_MARGIN + GAME_AREA_WIDTH),
+            self.block_size * BOTTOM_MARGIN,
+            colours::BLACK,
+        );
 
-        let mut encoder =
-            self.base
-                .device
-                .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                    label: Some("Game command encoder"),
-                });
-
-        // Render pass
-        {
-            let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("Game render pass"),
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &view,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
-                        store: true,
-                    },
-                })],
-                depth_stencil_attachment: None,
-            });
-
-            rpass.set_pipeline(&self.pipeline);
-
-            rpass.set_index_buffer(outer_rect.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-            rpass.set_vertex_buffer(0, outer_rect.vertex_buffer.slice(..));
-            rpass.draw_indexed(0..outer_rect.index_buffer_len, 0, 0..1);
-
-            rpass.set_index_buffer(inner_rect.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-            rpass.set_vertex_buffer(0, inner_rect.vertex_buffer.slice(..));
-            rpass.draw_indexed(0..inner_rect.index_buffer_len, 0, 0..1);
-        }
-        self.base.queue.submit(Some(encoder.finish()));
+        outer_rect + inner_rect
     }
 
     pub fn render_finish_screen(
@@ -187,11 +191,6 @@ impl<'a> Scene {
         self.write(view, "FINISHED!", SPACE * 6, SPACE * 5, true);
         let msg = format!("SCORE  {:?}", game_state.score);
         self.write(view, msg.as_str(), SPACE * 8, SPACE * 5, false);
-    }
-
-    pub fn render_blocks(&self, view: &wgpu::TextureView, game_state: &super::GameState) {
-        let blx = self.blocks(game_state).to_drawable(&self.base);
-        self.draw_blocks(view, blx);
     }
 
     fn draw_blocks(&self, view: &wgpu::TextureView, blx: Drawable) {
