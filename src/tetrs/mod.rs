@@ -96,6 +96,7 @@ impl Tetrs {
         Ok(())
     }
 
+    #[allow(dead_code)]
     pub fn set_debug(&mut self, msg: String) {
         self.debug_msg = msg;
     }
@@ -123,18 +124,15 @@ impl Tetrs {
             .create_view(&wgpu::TextureViewDescriptor::default());
 
         if self.state != TetrsState::Finished {
-            self.scene.render(&view, &self.game_state);
-            self.scene.render_next_tetromino(&view, &self.game_state);
-            self.scene.render_current_tetromino(&view, &self.game_state);
-            self.scene.render_score(&view, &self.game_state);
-            self.scene.render_level(&view, &self.game_state);
-            self.scene.render_debug(&view, &self.debug_msg);
+            self.scene.game_scene(&view, &self.game_state);
             if self.state == TetrsState::Paused {
-                self.scene.render_pause(&view, &self.game_state);
+                self.scene.render_pause(&view);
             }
         } else {
-            self.scene.render_finish_screen(&view, &self.game_state);
+            self.scene.finish_scene(&view, &self.game_state);
         }
+
+        self.scene.render_debug(&view, &self.debug_msg);
 
         frame.present();
         Ok(())

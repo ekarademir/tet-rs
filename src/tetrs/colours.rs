@@ -22,10 +22,13 @@ const fn convert(value: u32) -> Colour {
 }
 
 pub const BLACK: Colour = convert(0x000000);
+#[allow(dead_code)]
 pub const WHITE: Colour = convert(0xFFFFFF);
+#[allow(dead_code)]
 pub const ORANGE: Colour = convert(0xF2921D);
 pub const GREEN: Colour = convert(0xBFDB38);
 pub const DARK_GREEN: Colour = convert(0x00425A);
+#[allow(dead_code)]
 pub const YELLOW: Colour = convert(0xFCE22A);
 pub const MAROON: Colour = convert(0xA61F69);
 pub const LIGHT_PURPLE: Colour = convert(0xA084DC);

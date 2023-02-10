@@ -7,7 +7,7 @@ use wgpu_text::section::{
 
 use super::base::Base;
 use super::colours;
-use super::drawable::{Drawable, Geometry};
+use super::drawable::Geometry;
 use super::game_state;
 use super::tetromino::{BlockState, CurrentTetromino, Tetromino};
 use super::vertex::Vertex;
@@ -83,9 +83,14 @@ impl<'a> Scene {
         );
     }
 
-    pub fn render(&mut self, view: &wgpu::TextureView, game_state: &super::GameState) {
-        let game_arena = self.game_arena().to_drawable(&self.base);
-        let committed_blocks = self.blocks(game_state).to_drawable(&self.base);
+    pub fn game_scene(&mut self, view: &wgpu::TextureView, game_state: &super::GameState) {
+        let game_arena = self.game_arena();
+        let committed_blocks = self.blocks(game_state);
+        let next_tetromino = self.next_tetromino_geom(&game_state.next_tetromino.tetromino);
+        let current_tetromino = self.current_tetromino_geom(&game_state.current_tetromino);
+
+        let all = (game_arena + committed_blocks + next_tetromino + current_tetromino)
+            .to_drawable(&self.base);
 
         let mut encoder =
             self.base
@@ -110,54 +115,32 @@ impl<'a> Scene {
 
             rpass.set_pipeline(&self.pipeline);
 
-            rpass.set_index_buffer(game_arena.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-            rpass.set_vertex_buffer(0, game_arena.vertex_buffer.slice(..));
-            rpass.draw_indexed(0..game_arena.index_buffer_len, 0, 0..1);
-            rpass.set_index_buffer(
-                committed_blocks.index_buffer.slice(..),
-                wgpu::IndexFormat::Uint16,
-            );
-            rpass.set_vertex_buffer(0, committed_blocks.vertex_buffer.slice(..));
-            rpass.draw_indexed(0..committed_blocks.index_buffer_len, 0, 0..1);
+            rpass.set_index_buffer(all.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+            rpass.set_vertex_buffer(0, all.vertex_buffer.slice(..));
+            rpass.draw_indexed(0..all.index_buffer_len, 0, 0..1);
         }
-        self.base.queue.submit(Some(encoder.finish()));
-    }
+        self.base.queue.submit([encoder.finish()]);
 
-    pub fn render_next_tetromino(
-        &mut self,
-        view: &wgpu::TextureView,
-        game_state: &super::GameState,
-    ) {
+        // Text
         self.write(&view, "next", SPACE * 1, GAME_AREA_WIDTH, false);
-        let blx = self
-            .next_tetromino_geom(&game_state.next_tetromino.tetromino)
-            .to_drawable(&self.base);
-        self.draw_blocks(view, blx);
+        self.write(
+            &view,
+            format!("score   {}", game_state.score).as_str(),
+            SPACE * 12,
+            GAME_AREA_WIDTH,
+            false,
+        );
+        self.write(
+            &view,
+            format!("level   {}", game_state.level).as_str(),
+            SPACE * 14,
+            GAME_AREA_WIDTH,
+            false,
+        );
     }
 
-    pub fn render_current_tetromino(
-        &mut self,
-        view: &wgpu::TextureView,
-        game_state: &super::GameState,
-    ) {
-        let blx = self
-            .current_tetromino_geom(&game_state.current_tetromino)
-            .to_drawable(&self.base);
-        self.draw_blocks(view, blx);
-    }
-
-    pub fn render_score(&mut self, view: &wgpu::TextureView, game_state: &super::GameState) {
-        let text = format!("score   {}", game_state.score);
-        self.write(&view, text.as_str(), SPACE * 12, GAME_AREA_WIDTH, false);
-    }
-
-    pub fn render_pause(&mut self, view: &wgpu::TextureView, _game_state: &super::GameState) {
+    pub fn render_pause(&mut self, view: &wgpu::TextureView) {
         self.write(&view, "PAUSED", SPACE * 12, SPACE * 3, false);
-    }
-
-    pub fn render_level(&mut self, view: &wgpu::TextureView, game_state: &super::GameState) {
-        let text = format!("level   {}", game_state.level);
-        self.write(&view, text.as_str(), SPACE * 14, GAME_AREA_WIDTH, false);
     }
 
     pub fn render_debug(&mut self, view: &wgpu::TextureView, to_dbg: &String) {
@@ -183,46 +166,10 @@ impl<'a> Scene {
         outer_rect + inner_rect
     }
 
-    pub fn render_finish_screen(
-        &mut self,
-        view: &wgpu::TextureView,
-        game_state: &super::GameState,
-    ) {
+    pub fn finish_scene(&mut self, view: &wgpu::TextureView, game_state: &super::GameState) {
         self.write(view, "FINISHED!", SPACE * 6, SPACE * 5, true);
         let msg = format!("SCORE  {:?}", game_state.score);
         self.write(view, msg.as_str(), SPACE * 8, SPACE * 5, false);
-    }
-
-    fn draw_blocks(&self, view: &wgpu::TextureView, blx: Drawable) {
-        let mut encoder =
-            self.base
-                .device
-                .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                    label: Some("Finish screen command encoder"),
-                });
-
-        // Render pass
-        {
-            let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("Finish screen render pass"),
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &view,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Load,
-                        store: true,
-                    },
-                })],
-                depth_stencil_attachment: None,
-            });
-
-            rpass.set_pipeline(&self.pipeline);
-
-            rpass.set_index_buffer(blx.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-            rpass.set_vertex_buffer(0, blx.vertex_buffer.slice(..));
-            rpass.draw_indexed(0..blx.index_buffer_len, 0, 0..1);
-        }
-        self.base.queue.submit(Some(encoder.finish()));
     }
 
     fn write(
