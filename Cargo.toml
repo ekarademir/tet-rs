@@ -16,13 +16,18 @@ features = ["js"]
 [dependencies]
 anyhow = "1.0.68"
 bytemuck = {version = "1.13.0", features = ["derive"]}
+cfg-if = "1"
 glyph_brush = "0.7.5"
 instant = {version = "0.1.12", features = [ "stdweb" ]}
 log = "0.4.17"
+pollster = "0.2.5"
 random-number = "0.1.8"
+simple_logger = "4.0.0"
 wgpu = {version = "0.14.2", features = ["webgl"]}
 wgpu_text = "0.6.5"
 winit = "0.28.1"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
 console_error_panic_hook = "0.1.7"
 console_log = "0.2.0"
 wasm-bindgen = "0.2.84"

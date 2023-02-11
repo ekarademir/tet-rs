@@ -1,4 +1,7 @@
+#[cfg(target_arch = "wasm32")]
 use instant::{Duration, Instant};
+#[cfg(not(target_arch = "wasm32"))]
+use std::time::{Duration, Instant};
 
 use anyhow::Context;
 use winit::{
@@ -139,56 +142,150 @@ impl Tetrs {
     }
 }
 
+fn toggle_fullscreen(window: &Window, mode: &VideoMode) {
+    if window.fullscreen().is_some() {
+        window.set_fullscreen(None);
+        window.set_inner_size(winit::dpi::LogicalSize::new(
+            super::WINDOW_WIDTH,
+            super::WINDOW_HEIGHT,
+        ));
+        window.request_redraw();
+    } else {
+        let fullscreen = Some(Fullscreen::Exclusive(mode.clone()));
+        window.set_fullscreen(fullscreen);
+        window.request_redraw();
+    }
+}
+
 pub async fn run(
     window: Window,
     event_loop: EventLoop<GameEvent>,
     mut tetrs: Tetrs,
 ) -> anyhow::Result<()> {
-    event_loop.run(move |event, _, control_flow| {
-        *control_flow = ControlFlow::Poll;
+    cfg_if::cfg_if! {
+        if #[cfg(target_arch = "wasm32")] {
+          event_loop.run(move |event, _, control_flow| {
+            *control_flow = ControlFlow::Poll;
 
-        tetrs.step_time().expect("Panicked while stepping time");
+            tetrs.step_time().expect("Panicked while stepping time");
 
-        match event {
-            Event::WindowEvent { event, .. } => match event {
-                WindowEvent::Resized(size) => {
-                    tetrs.resize(size);
-                    window.request_redraw();
-                }
-                WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
-                WindowEvent::KeyboardInput {
-                    input:
-                        KeyboardInput {
-                            virtual_keycode: Some(virtual_code),
-                            state: ElementState::Pressed,
-                            ..
-                        },
-                    ..
-                } => match virtual_code {
-                    VirtualKeyCode::Escape => *control_flow = ControlFlow::Exit,
-                    VirtualKeyCode::Up => tetrs.handle_up(),
-                    VirtualKeyCode::Down => tetrs.handle_down(),
-                    VirtualKeyCode::Left => tetrs.handle_left(),
-                    VirtualKeyCode::Right => tetrs.handle_right(),
-                    VirtualKeyCode::Space => {
-                        tetrs.toggle_pause().expect("Panicked while toggling pause")
+            match event {
+                Event::WindowEvent { event, .. } => match event {
+                    WindowEvent::Resized(size) => {
+                        tetrs.resize(size);
+                        window.request_redraw();
                     }
+                    WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
+                    WindowEvent::KeyboardInput {
+                        input:
+                            KeyboardInput {
+                                virtual_keycode: Some(virtual_code),
+                                state: ElementState::Pressed,
+                                ..
+                            },
+                        ..
+                    } => match virtual_code {
+                        VirtualKeyCode::Up => tetrs.handle_up(),
+                        VirtualKeyCode::Down => tetrs.handle_down(),
+                        VirtualKeyCode::Left => tetrs.handle_left(),
+                        VirtualKeyCode::Right => tetrs.handle_right(),
+                        VirtualKeyCode::Space => {
+                            tetrs.toggle_pause().expect("Panicked while toggling pause")
+                        }
+                        _ => {}
+                    },
                     _ => {}
                 },
+                Event::RedrawRequested(_) => {
+                    tetrs.render().expect("Panicked while render");
+                }
+                Event::UserEvent(GameEvent::Step | GameEvent::Pause) => {
+                    tetrs.render().expect("Panicked while render");
+                }
+                Event::UserEvent(GameEvent::Finished) => {
+                    tetrs.finish_game().unwrap();
+                }
                 _ => {}
-            },
-            Event::RedrawRequested(_) => {
-                tetrs.render().expect("Panicked while render");
             }
-            Event::UserEvent(GameEvent::Step | GameEvent::Pause) => {
-                tetrs.render().expect("Panicked while render");
-            }
-            Event::UserEvent(GameEvent::Finished) => {
-                tetrs.finish_game().unwrap();
-            }
-            _ => {}
+        });
         }
-    });
+        else {
+          // Machinery for the full screen mode
+          let monitor = event_loop
+              .available_monitors()
+              .next()
+              .context("Can't find a monitor")?;
+          let modes: Vec<_> = monitor.video_modes().collect();
+          if modes.len() == 0 {
+              return Err(anyhow::Error::msg("Can't find a mode for fullscreen"));
+          }
+          let maybe_mode = {
+              let mut max_mode_idx: usize = 0;
+              let mut max_size = winit::dpi::PhysicalSize::new(0, 0);
+              for (mode_idx, mode) in modes.iter().enumerate() {
+                  if mode.size().width > max_size.width && mode.size().height > max_size.height {
+                      max_size = mode.size();
+                      max_mode_idx = mode_idx;
+                  }
+              }
+
+              monitor.video_modes().nth(max_mode_idx)
+          };
+          let fullscreen_mode = maybe_mode.context("Can't obtain max size mode for fullscreen")?;
+
+          event_loop.run(move |event, _, control_flow| {
+              *control_flow = ControlFlow::Poll;
+
+              tetrs.step_time().expect("Panicked while stepping time");
+
+              match event {
+                  Event::WindowEvent { event, .. } => match event {
+                      WindowEvent::Resized(size) => {
+                          tetrs.resize(size);
+                          window.request_redraw();
+                      }
+                      WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
+                      WindowEvent::KeyboardInput {
+                          input:
+                              KeyboardInput {
+                                  virtual_keycode: Some(virtual_code),
+                                  state: ElementState::Pressed,
+                                  ..
+                              },
+                          ..
+                      } => match virtual_code {
+                          VirtualKeyCode::Escape => *control_flow = ControlFlow::Exit,
+                          VirtualKeyCode::Up => tetrs.handle_up(),
+                          VirtualKeyCode::Down => tetrs.handle_down(),
+                          VirtualKeyCode::Left => tetrs.handle_left(),
+                          VirtualKeyCode::Right => tetrs.handle_right(),
+                          VirtualKeyCode::Space => {
+                              tetrs.toggle_pause().expect("Panicked while toggling pause")
+                          }
+                          VirtualKeyCode::F => {
+                              toggle_fullscreen(&window, &fullscreen_mode);
+                          }
+                          _ => {}
+                      },
+                      _ => {}
+                  },
+                  Event::RedrawRequested(_) => {
+                      tetrs.render().expect("Panicked while render");
+                  }
+                  Event::UserEvent(GameEvent::Step | GameEvent::Pause) => {
+                      tetrs.render().expect("Panicked while render");
+                  }
+                  Event::UserEvent(GameEvent::Fullscreen) => {
+                      toggle_fullscreen(&window, &fullscreen_mode);
+                  }
+                  Event::UserEvent(GameEvent::Finished) => {
+                      tetrs.finish_game().unwrap();
+                  }
+                  _ => {}
+              }
+          });
+        }
+    }
 }
 
 mod base;

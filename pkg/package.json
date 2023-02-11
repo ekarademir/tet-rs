@@ -1,0 +1,12 @@
+{
+  "name": "tet-rs",
+  "version": "0.1.0",
+  "files": [
+    "tet_rs_bg.wasm",
+    "tet_rs.js",
+    "tet_rs.d.ts"
+  ],
+  "module": "tet_rs.js",
+  "types": "tet_rs.d.ts",
+  "sideEffects": false
+}
