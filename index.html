@@ -135,8 +135,17 @@
         border-collapse: collapse;
         border-spacing: 0;
       }
+      body {
+        background-color: black;
+        display: flex;
+        justify-content: center;
+      }
       canvas {
         background-color: black;
+      }
+
+      canvas:focus {
+        outline: none;
       }
     </style>
   </head>
@@ -146,6 +155,7 @@
       import init from "./pkg/tet_rs.js";
       init().then(() => {
         console.log("WASM Loaded");
+        document.getElementsByTagName("canvas")[0].focus();
       });
     </script>
   </body>
