@@ -153,7 +153,7 @@ impl GameState {
         // Check board bounds
         if tetro_blocks_x < board_x
             || tetro_blocks_x + tetro_width > board_x + board_width
-            || tetro_blocks_y + tetro_height < board_y // Rebate the off screen starting
+            || tetro_blocks_y + tetro_height < board_y
             || tetro_blocks_y + tetro_height > board_y + board_height
         {
             return false;
@@ -172,7 +172,7 @@ impl GameState {
                 if bend < NUM_ROWS {
                     (
                         (tetro_blocks_y) as usize,
-                        (tetro_blocks_y + tetro_height) as usize,
+                        (tetro_blocks_y + tetro_height) as usize, // Rebate the off screen starting
                     )
                 } else {
                     ((tetro_blocks_y) as usize, NUM_ROWS)

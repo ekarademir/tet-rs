@@ -23,7 +23,7 @@ impl Into<Tetromino> for BlockState {
             BlockState::Ohh => Tetromino::ohh(),
             BlockState::Tee => Tetromino::tee(),
             BlockState::Zee => Tetromino::zee(),
-            _ => Tetromino::eye(),
+            BlockState::Emp => Tetromino::emp(),
         }
     }
 }
@@ -224,6 +224,19 @@ impl Tetromino {
             ],
             starting_pos_y: -2,
             starting_pos_x: (NUM_COLS - 3) / 2,
+        }
+    }
+
+    ///
+    /// xx
+    ///  xx
+    ///
+    pub fn emp() -> Self {
+        Tetromino {
+            colour: colours::GREEN,
+            shape: vec![vec![]],
+            starting_pos_y: 0,
+            starting_pos_x: 0,
         }
     }
 }

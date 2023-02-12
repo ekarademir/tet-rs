@@ -334,8 +334,7 @@ impl<'a> Scene {
 
         // Determining how much of the tetromino should be in view
         // `current_tetromino.y` is already rebated for the height of the tetromino we first add it back.
-        // Then the resulting height should be rebated for the `UNRENDERED_HEIGHT`, since
-        // tetrominos start from outside of the "rendered" box, this then gives the amount
+        // Tetrominos start from outside of the "rendered" box, this then gives the amount
         // of tetromino `in_view`.
         // Finally we return the index bounds of the rows of the shape that should be rendered.
         let shape_height = current_tetromino.tetromino.shape.len() as i8;
